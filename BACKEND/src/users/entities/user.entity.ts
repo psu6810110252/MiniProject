@@ -12,5 +12,5 @@ export class User {
   password: string;
 
   @Column({ default: 'BUYER' }) // ถ้าไม่ระบุ ให้เป็น BUYER (คนซื้อ)
-  role: string; 
+  role: string;
 }

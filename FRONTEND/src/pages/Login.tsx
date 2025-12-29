@@ -20,7 +20,12 @@ function Login() {
       const response = await axios.post('http://localhost:3000/auth/login', formData);
       
       // 2. ถ้าผ่าน จะได้ Token กลับมา ให้เก็บไว้ในเครื่อง (Local Storage)
-      localStorage.setItem('token', response.data.access_token);
+      const token = response.data.access_token;
+      const userRole = response.data.user?.role ?? '';
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', userRole);
+      
       
       alert('✅ ล็อกอินสำเร็จ! ยินดีต้อนรับครับ');
       
