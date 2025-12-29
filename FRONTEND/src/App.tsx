@@ -1,24 +1,29 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import Register from './pages/Register';
 
-function App() {
-  const [status, setStatus] = useState('กำลังเชื่อมต่อ...')
-
-  useEffect(() => {
-    // ยิงไปหา Backend Port 3000
-    fetch('http://localhost:3000')
-      .then(res => res.text()) // แปลงผลลัพธ์เป็นข้อความ
-      .then(data => setStatus(`✅ เชื่อมต่อสำเร็จ! ข้อความจากหลังบ้าน: ${data}`))
-      .catch(err => setStatus(`❌ เชื่อมต่อไม่ได้: ${err}`))
-  }, [])
-
+// สร้างหน้า Home ชั่วคราว (เดี๋ยวค่อยทำสวยๆ)
+function Home() {
   return (
-    <div style={{ padding: '50px', fontFamily: 'sans-serif' }}>
-      <h1>ทดสอบระบบ</h1>
-      <h2 style={{ color: status.includes('สำเร็จ') ? 'green' : 'red' }}>
-        {status}
-      </h2>
+    <div style={{ textAlign: 'center', marginTop: '50px' }}>
+      <h1>🏠 หน้าหลัก</h1>
+      <p>ยินดีต้อนรับสู่ร้านค้าของเรา</p>
+      <Link to="/register">👉 ไปหน้าสมัครสมาชิก</Link>
     </div>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* หน้าแรก (/) ให้แสดง Home */}
+        <Route path="/" element={<Home />} />
+        
+        {/* หน้าสมัครสมาชิก (/register) ให้แสดง Register */}
+        <Route path="/register" element={<Register />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
