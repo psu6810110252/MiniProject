@@ -4,17 +4,18 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './jwt.strategy'; // <--- 1. เพิ่มบรรทัดนี้
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
     JwtModule.register({
-      secret: 'SECRET_KEY_NAJA', // ของจริงควรเก็บใน .env แต่วันนี้เอาแบบนี้ไปก่อน
-      signOptions: { expiresIn: '60m' }, // บัตรหมดอายุใน 60 นาที
+      secret: 'SECRET_KEY_NAJA',
+      signOptions: { expiresIn: '60m' },
     }),
   ],
-  providers: [AuthService],
+  providers: [AuthService, JwtStrategy], // <--- 2. เพิ่ม JwtStrategy เข้าไปในนี้
   controllers: [AuthController],
 })
 export class AuthModule {}

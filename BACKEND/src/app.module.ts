@@ -1,28 +1,25 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { ProductsModule } from './products/products.module'; // <--- 1. เพิ่มบรรทัดนี้
+
+import { User } from './users/entities/user.entity';
+import { Product } from './products/entities/product.entity';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'admin',      // ตรงกับ docker-compose
-      password: 'password123', // ตรงกับ docker-compose
-      database: 'shop_db',    // ตรงกับ docker-compose
-      autoLoadEntities: true,
-      synchronize: true,      // Dev mode: แก้โค้ดแล้ว DB อัปเดตตาม
+      type: 'sqlite',
+      database: 'database.sqlite',
+      entities: [User, Product],
+      synchronize: true,
     }),
     UsersModule,
     AuthModule,
+    ProductsModule, // <--- 2. อย่าลืมใส่ในนี้! (ถ้าขาดบรรทัดนี้ API จะ 404)
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
