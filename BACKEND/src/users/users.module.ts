@@ -5,8 +5,9 @@ import { UsersController } from './users.controller';
 import { User } from './entities/user.entity'; // <--- เพิ่ม
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])], // <--- บรรทัดนี้สำคัญมาก! บอกให้รู้จักตาราง User
+  imports: [TypeOrmModule.forFeature([User])],
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [UsersService], // <--- เพิ่มบรรทัดนี้ เพื่อให้ AuthModule เรียกใช้ได้
 })
 export class UsersModule {}

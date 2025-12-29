@@ -31,4 +31,7 @@ export class UsersService {
   findAll() {
     return this.usersRepository.find();
   }
+  async findOne(username: string) {
+  return this.usersRepository.findOne({ where: { username } });
+}
 }
