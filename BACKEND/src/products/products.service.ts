@@ -30,6 +30,11 @@ export class ProductsService {
       relations: ['user'] 
     });
   }
+  // ... โค้ดเดิมข้างบน ...
 
-  // (Update กับ Remove เอาไว้ก่อน วันนี้เอาแค่ลงขายให้ได้ก่อน)
+// เพิ่มฟังก์ชันลบข้อมูลตาม ID
+   async remove(id: number) {
+    return this.productsRepository.delete(id);
+    }
+
 }

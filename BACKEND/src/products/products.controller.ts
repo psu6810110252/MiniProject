@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Delete } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { AuthGuard } from '@nestjs/passport'; // <--- ตัวตรวจบัตร
+
 
 @Controller('products')
 export class ProductsController {
@@ -23,5 +24,11 @@ export class ProductsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(+id);
+  }
+
+  @UseGuards(AuthGuard('jwt')) // ต้องล็อกอินถึงจะลบได้
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.productsService.remove(+id);
   }
 }
