@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm'; // เพิ่ม DataSource
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { Product } from '../products/entities/product.entity';
@@ -11,70 +11,91 @@ export class OrdersService {
     @InjectRepository(Order) private ordersRepository: Repository<Order>,
     @InjectRepository(OrderItem) private orderItemsRepository: Repository<OrderItem>,
     @InjectRepository(Product) private productsRepository: Repository<Product>,
+    private dataSource: DataSource, // สำหรับทำ Transaction
   ) {}
 
-  // 👇 แก้บรรทัดนี้: เพิ่ม slipImage? เป็นตัวรับค่าตัวที่ 3 (เครื่องหมาย ? แปลว่ามีหรือไม่มีก็ได้)
+  // ฟังก์ชันเดิมสำหรับการซื้อทีละชิ้น
   async create(userId: number, productId: number, slipImage?: string) {
-    // 1. เช็คราคาสินค้าล่าสุด
     const product = await this.productsRepository.findOneBy({ id: productId });
     if (!product) throw new Error('สินค้าไม่ถูกต้อง');
 
-    // 2. สร้างหัวบิล (Order)
     const order = new Order();
-    order.user = { id: userId } as any; // ระบุคนซื้อ
-    order.totalPrice = product.price;   // ระบุยอดรวม
-    order.status = 'PENDING';           // สถานะรอจ่ายเงิน
+    order.user = { id: userId } as any;
+    order.totalPrice = product.price;
+    order.status = 'PENDING';
+    if (slipImage) order.slipImage = slipImage;
 
-    // 👇 เพิ่มบรรทัดนี้: ถ้ามีชื่อไฟล์ส่งมา ให้บันทึกลง Database
-    if (slipImage) {
-      order.slipImage = slipImage;
-    }
-
-    // 3. สร้างรายการสินค้าในบิล (OrderItem)
     const orderItem = new OrderItem();
     orderItem.product = product;
-    orderItem.price = product.price;    // บันทึกราคา ณ ตอนซื้อ
-    orderItem.quantity = 1;             // สมมติว่าซื้อทีละ 1 ชิ้น
-    orderItem.order = order;            // ผูกกับหัวบิล
-
-    // 4. เอารายการยัดใส่หัวบิล
+    orderItem.price = product.price;
+    orderItem.quantity = 1;
+    orderItem.order = order;
     order.orderItems = [orderItem];
 
-    // 5. บันทึกลง Database
     const savedOrder = await this.ordersRepository.save(order);
-
-    // แก้ Bug งูกินหาง (Circular Dependency)
     if (savedOrder.orderItems) {
-      savedOrder.orderItems.forEach(item => {
-        // 👇 แก้ตรงนี้: เติม (item as any) เพื่อบังคับลบ
-        delete (item as any).order; 
-      });
+      savedOrder.orderItems.forEach(item => { delete (item as any).order; });
     }
-
     return savedOrder;
   }
 
+  // 🔥 เพิ่มฟังก์ชันสำหรับตะกร้าสินค้า (Bulk Order)
+  async createBulk(userId: number, items: any[], slipImage?: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const order = new Order();
+      order.user = { id: userId } as any;
+      order.status = 'PENDING';
+      // คำนวณราคาทั้งตะกร้า
+      order.totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      if (slipImage) order.slipImage = slipImage;
+
+      const savedOrder = await queryRunner.manager.save(order);
+
+      const orderItems = items.map(item => {
+        const oi = new OrderItem();
+        oi.product = { id: item.id } as any;
+        oi.price = item.price;
+        oi.quantity = item.quantity;
+        oi.order = savedOrder;
+        return oi;
+      });
+
+      await queryRunner.manager.save(OrderItem, orderItems);
+      await queryRunner.commitTransaction();
+
+      return savedOrder;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  // ฟังก์ชันอื่นๆ คงเดิม
   async findAllAdmin() {
-  return this.ordersRepository.find({
-    relations: ['user', 'orderItems', 'orderItems.product'],
-    order: { createdAt: 'DESC' }
-  });
-}
+    return this.ordersRepository.find({
+      relations: ['user', 'orderItems', 'orderItems.product'],
+      order: { createdAt: 'DESC' }
+    });
+  }
 
   async approve(id: number) {
-  const order = await this.ordersRepository.findOneBy({ id });
-  if (!order) throw new Error('ไม่พบออเดอร์');
-  
-  order.status = 'APPROVED';
-  return this.ordersRepository.save(order);
-}
+    const order = await this.ordersRepository.findOneBy({ id });
+    if (!order) throw new Error('ไม่พบออเดอร์');
+    order.status = 'APPROVED';
+    return this.ordersRepository.save(order);
+  }
 
-  // ฟังก์ชันดูประวัติการสั่งซื้อของตัวเอง
   findAll(userId: number) {
     return this.ordersRepository.find({
-      where: { user: { id: userId } },
-      relations: ['orderItems', 'orderItems.product'], // ดึงข้อมูลสินค้ามาโชว์ด้วย
-      order: { createdAt: 'DESC' } // เรียงจากใหม่ไปเก่า
+      where: { user: { id: userId } as any },
+      relations: ['orderItems', 'orderItems.product'],
+      order: { createdAt: 'DESC' }
     });
   }
 }
