@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm'; // เพิ่ม DataSource
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { Product } from '../products/entities/product.entity';
+import { Payout } from './entities/payout.entity';
 
 @Injectable()
 export class OrdersService {
@@ -85,11 +86,57 @@ export class OrdersService {
   }
 
   async approve(id: number) {
-    const order = await this.ordersRepository.findOneBy({ id });
-    if (!order) throw new Error('ไม่พบออเดอร์');
-    order.status = 'APPROVED';
-    return this.ordersRepository.save(order);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. ค้นหา Order พร้อมข้อมูลสินค้าและเจ้าของสินค้า (Seller)
+      const order = await queryRunner.manager.findOne(Order, {
+        where: { id },
+        relations: ['orderItems', 'orderItems.product', 'orderItems.product.user'],
+      });
+
+      if (!order) throw new Error('ไม่พบออเดอร์');
+      if (order.status === 'APPROVED') throw new Error('ออเดอร์นี้ถูกอนุมัติไปแล้ว');
+
+      // 2. อัปเดตสถานะออเดอร์เป็น APPROVED
+      order.status = 'APPROVED';
+      await queryRunner.manager.save(order);
+
+      // 3. 🚀 Logic สร้างข้อมูล Payout (Trigger ตาม Roadmap ขั้นที่ 4)
+      // วนลูปสร้างรายการยอดเงินโอนให้คนขาย ตามจำนวนสินค้าในออเดอร์
+      for (const item of order.orderItems) {
+        const payout = new Payout();
+        payout.amount = item.price * item.quantity; // คำนวณยอดเงินที่จะได้รับ
+        payout.seller = item.product.user;         // ระบุคนขายที่จะได้รับเงิน
+        payout.order = order;
+        payout.status = 'PENDING';                 // สถานะรอแอดมินโอนเงินจริงให้คนขาย
+        
+        await queryRunner.manager.save(payout);
+      }
+
+      await queryRunner.commitTransaction();
+      return { message: 'อนุมัติออเดอร์และสร้างรายการรอยอดโอนให้ผู้ขายเรียบร้อย' };
+
+    } catch (err) {
+      // หากเกิดข้อผิดพลาด ให้ยกเลิกการเปลี่ยนแปลงทั้งหมด (Rollback)
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      // ปล่อยการเชื่อมต่อคืนระบบ
+      await queryRunner.release();
+    }
   }
+
+  // 🔥 เพิ่มฟังก์ชันสำหรับดึงข้อมูลรายได้ของผู้ขาย (Seller Dashboard)
+async getMyPayouts(sellerId: number) {
+  return this.dataSource.getRepository('Payout').find({
+    where: { seller: { id: sellerId } },
+    relations: ['order'],
+    order: { createdAt: 'DESC' }
+  });
+}
 
   findAll(userId: number) {
     return this.ordersRepository.find({

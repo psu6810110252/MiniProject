@@ -9,6 +9,7 @@ import MyOrders from './pages/MyOrders';
 import AdminDashboard from './pages/AdminDashboad';
 import CartPage from './pages/CartPage'; // ✅ นำเข้าหน้าตะกร้า
 import { useCart } from './context/CartContext'; // เช็คว่าในเครื่องชื่อ CartContext.tsx หรือไม่
+import SellerDashboard from './pages/SellerDashboard';
 
 interface Product {
   id: number;
@@ -72,6 +73,14 @@ function Header() {
             </button>
           </Link>
 
+          {role === 'seller' && (
+            <Link to="/seller-dashboard">
+              <button style={{ padding: '10px 20px', cursor: 'pointer', background: '#28a745', color: 'white', border: 'none', borderRadius: '5px', marginLeft: '10px' }}>
+                💰 ยอดรายได้
+              </button>
+          </Link>
+        )}
+
           {role === 'admin' && (
             <Link to="/admin">
               <button style={{ padding: '10px 20px', cursor: 'pointer', background: '#d33', color: 'white', border: 'none', borderRadius: '5px', marginLeft: '10px' }}>
@@ -125,7 +134,7 @@ function Home() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center', fontSize: '3rem', margin: '20px 0' }}>🏠 ตลาดนัดออนไลน์</h1>
+      <h1 style={{ textAlign: 'center', fontSize: '3rem', margin: '20px 0' }}>🏠 Lecture Clubhouse 🩷</h1>
       <Header />
 
       <div style={{ textAlign: 'center', marginBottom: '30px' }}>
@@ -153,7 +162,7 @@ function Home() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
                 <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2ecc71' }}>฿{product.price}</span>
                 <div style={{ display: 'flex', gap: '5px' }}>
-                  <Link to={`/edit/${product.id}`}><button style={{ padding: '5px 10px', background: '#f39c12', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>แก้ไข</button></Link>
+                  <Link to={`/edit/${product.id}`}><button style={{ padding: '5px 10px', background: '#ec12f3ff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>แก้ไข</button></Link>
                   <button onClick={() => handleDelete(product.id)} style={{ padding: '5px 10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>ลบ</button>
                   
                   {/* ✅ เปลี่ยนจาก "ซื้อเลย" เป็น "ใส่ตะกร้า" */}
@@ -184,6 +193,7 @@ function App() {
         <Route path="/edit/:id" element={<EditProduct />} />
         <Route path="/my-orders" element={<MyOrders />} />
         <Route path="/cart" element={<CartPage />} /> {/* ✅ เพิ่ม Route หน้าตะกร้า */}
+        <Route path="/seller-dashboard" element={<SellerDashboard />} />
         
         <Route 
           path="/admin" 

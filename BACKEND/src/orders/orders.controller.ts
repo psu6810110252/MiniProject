@@ -62,4 +62,11 @@ export class OrdersController {
   approve(@Param('id') id: string) {
     return this.ordersService.approve(+id);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+@Get('payouts/my')
+async getMyPayouts(@Request() req) {
+  // ต้องสร้างฟังก์ชัน getMyPayouts ใน OrdersService เพื่อดึงข้อมูลจาก Repository ของ Payout
+  return this.ordersService.getMyPayouts(req.user.id);
+}
 }
