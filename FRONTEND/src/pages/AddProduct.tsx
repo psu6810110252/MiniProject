@@ -9,13 +9,12 @@ function AddProduct() {
     description: '',
     price: 0,
   });
-  const [file, setFile] = useState<File | null>(null); // <--- 1. เพิ่มตัวเก็บไฟล์
+  const [file, setFile] = useState<File | null>(null);
 
   const handleChange = (e: any) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 2. ฟังก์ชันเมื่อเลือกไฟล์รูป
   const handleFileChange = (e: any) => {
     setFile(e.target.files[0]);
   };
@@ -25,20 +24,18 @@ function AddProduct() {
     try {
       const token = localStorage.getItem('token');
       
-      // 3. เปลี่ยนวิธีแพ็คของเป็น FormData (สำคัญมาก!)
       const data = new FormData();
       data.append('title', formData.title);
       data.append('description', formData.description);
-      data.append('price', String(formData.price)); // FormData รับแต่ String
+      data.append('price', String(formData.price));
       if (file) {
-        data.append('file', file); // 'file' ต้องตรงกับที่ Backend รอรับ
+        data.append('file', file);
       }
 
-      // ส่ง FormData ไปแทน JSON
       await axios.post('http://localhost:3000/products', data, {
         headers: { 
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data' // บอกว่าเป็นไฟล์นะ
+          'Content-Type': 'multipart/form-data'
         } 
       });
 
@@ -51,29 +48,29 @@ function AddProduct() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '400px', margin: '0 auto', marginTop: '50px', color: 'white' }}>
-      <h1>📦 ลงขายสินค้า (มีรูป)</h1>
+    // 🚩 แก้ไข: เอา color: 'white' ออก และใส่สีดำแทนเพื่อให้เห็นชัดบนพื้นขาว
+    <div style={{ padding: '20px', maxWidth: '400px', margin: '50px auto', color: '#333', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
+      <h1 style={{ textAlign: 'center' }}>📦 ลงขายสินค้า</h1>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '10px' }}>
-          <label>ชื่อสินค้า:</label>
-          <input type="text" name="title" onChange={handleChange} required style={{ width: '100%', padding: '8px' }} />
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>ชื่อสินค้า:</label>
+          <input type="text" name="title" onChange={handleChange} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
         </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>รายละเอียด:</label>
-          <textarea name="description" onChange={handleChange} required style={{ width: '100%', padding: '8px' }} />
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>รายละเอียด:</label>
+          <textarea name="description" onChange={handleChange} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
         </div>
-        <div style={{ marginBottom: '10px' }}>
-          <label>ราคา (บาท):</label>
-          <input type="number" name="price" onChange={handleChange} required style={{ width: '100%', padding: '8px' }} />
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>ราคา (บาท):</label>
+          <input type="number" name="price" onChange={handleChange} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
         </div>
         
-        {/* 4. เพิ่มช่องเลือกรูปภาพ */}
         <div style={{ marginBottom: '20px' }}>
-          <label>รูปภาพสินค้า:</label>
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>รูปภาพสินค้า:</label>
           <input type="file" accept="image/*" onChange={handleFileChange} style={{ marginTop: '5px' }} />
         </div>
 
-        <button type="submit" style={{ padding: '10px', background: 'orange', color: 'white', border: 'none', cursor: 'pointer', width: '100%' }}>
+        <button type="submit" style={{ padding: '12px', background: '#ff9800', color: 'white', border: 'none', cursor: 'pointer', width: '100%', borderRadius: '5px', fontSize: '16px', fontWeight: 'bold' }}>
           + ลงขายทันที
         </button>
       </form>

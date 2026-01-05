@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm'; // เพิ่ม DataSource
+import { Repository, DataSource } from 'typeorm'; 
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { Product } from '../products/entities/product.entity';
@@ -40,7 +40,7 @@ export class OrdersService {
     return savedOrder;
   }
 
-  // 🔥 เพิ่มฟังก์ชันสำหรับตะกร้าสินค้า (Bulk Order)
+  // 🔥 ฟังก์ชันสำหรับตะกร้าสินค้า (Bulk Order)
   async createBulk(userId: number, items: any[], slipImage?: string) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -85,6 +85,7 @@ export class OrdersService {
     });
   }
 
+  // ✅ ปรับปรุง: เพิ่ม Logic หัก 5% ในฟังก์ชัน approve
   async approve(id: number) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -104,20 +105,28 @@ export class OrdersService {
       order.status = 'APPROVED';
       await queryRunner.manager.save(order);
 
-      // 3. 🚀 Logic สร้างข้อมูล Payout (Trigger ตาม Roadmap ขั้นที่ 4)
+      // 3. 🚀 Logic สร้างข้อมูล Payout (หัก 5%)
       // วนลูปสร้างรายการยอดเงินโอนให้คนขาย ตามจำนวนสินค้าในออเดอร์
       for (const item of order.orderItems) {
         const payout = new Payout();
-        payout.amount = item.price * item.quantity; // คำนวณยอดเงินที่จะได้รับ
-        payout.seller = item.product.user;         // ระบุคนขายที่จะได้รับเงิน
+        
+        // คำนวณราคารวมของ item นั้น (เผื่อ quantity > 1)
+        const totalItemPrice = Number(item.price) * item.quantity;
+        
+        // คำนวณยอดที่จะหัก 5%
+        const adminFee = totalItemPrice * 0.05;
+        const sellerReceive = totalItemPrice - adminFee;
+
+        payout.amount = sellerReceive; // ยอดเงินสุทธิที่คนขายจะได้รับ (95%)
+        payout.seller = item.product.user; // ระบุคนขายที่จะได้รับเงิน
         payout.order = order;
-        payout.status = 'PENDING';                 // สถานะรอแอดมินโอนเงินจริงให้คนขาย
+        payout.status = 'PENDING'; // สถานะรอแอดมินโอนเงินจริงให้คนขาย
         
         await queryRunner.manager.save(payout);
       }
 
       await queryRunner.commitTransaction();
-      return { message: 'อนุมัติออเดอร์และสร้างรายการรอยอดโอนให้ผู้ขายเรียบร้อย' };
+      return { message: 'อนุมัติออเดอร์และสร้างรายการรอยอดโอนให้ผู้ขายเรียบร้อย (หัก 5%)' };
 
     } catch (err) {
       // หากเกิดข้อผิดพลาด ให้ยกเลิกการเปลี่ยนแปลงทั้งหมด (Rollback)
@@ -129,9 +138,9 @@ export class OrdersService {
     }
   }
 
-  // 🔥 เพิ่มฟังก์ชันสำหรับดึงข้อมูลรายได้ของผู้ขาย (Seller Dashboard)
-async getMyPayouts(sellerId: number) {
-  return this.dataSource.getRepository('Payout').find({
+  // 🔥 ฟังก์ชันสำหรับดึงข้อมูลรายได้ของผู้ขาย (Seller Dashboard)
+  async getMyPayouts(sellerId: number) {
+  return this.dataSource.getRepository(Payout).find({
     where: { seller: { id: sellerId } },
     relations: ['order'],
     order: { createdAt: 'DESC' }

@@ -10,21 +10,28 @@ export class ProductsService {
     private productsRepository: Repository<Product>,
   ) {}
 
-  // 1. สร้างสินค้า
   async create(createProductDto: any, user: any) {
     const newProduct = this.productsRepository.create({
       ...createProductDto,
-      user: { id: user.id } as any,
+      user: { id: user.id } as any, // ผูก User กับสินค้า
     });
     return this.productsRepository.save(newProduct);
   }
 
-  // 2. ดึงทั้งหมด
   findAll() {
-    return this.productsRepository.find();
+    return this.productsRepository.find({
+      order: { id: 'DESC' } // เรียงจากใหม่ไปเก่า
+    });
   }
 
-  // 3. ดึงชิ้นเดียว
+  // ✅ เพิ่ม: หาเฉพาะสินค้าของ User คนนั้น
+  findByUser(userId: number) {
+    return this.productsRepository.find({
+      where: { user: { id: userId } },
+      order: { id: 'DESC' }
+    });
+  }
+
   findOne(id: number) {
     return this.productsRepository.findOne({ 
       where: { id },
@@ -32,12 +39,10 @@ export class ProductsService {
     });
   }
 
-  // 4. ลบสินค้า
   async remove(id: number) {
     return this.productsRepository.delete(id);
   }
 
-  // 5. อัปเดตสินค้า (ต้องมีอันนี้!)
   async update(id: number, updateProductDto: any) {
     return this.productsRepository.update(id, updateProductDto);
   }

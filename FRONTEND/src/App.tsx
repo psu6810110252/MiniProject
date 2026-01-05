@@ -8,7 +8,7 @@ import Login from './pages/Login';
 import AddProduct from './pages/AddProduct';
 import EditProduct from './pages/EditProduct';
 import MyOrders from './pages/MyOrders';
-import AdminDashboard from './pages/AdminDashboad'; // เดี๋ยวแก้โค้ดไฟล์นี้ต่อด้านล่าง
+import AdminDashboard from './pages/AdminDashboad';
 import CartPage from './pages/CartPage';
 import SellerDashboard from './pages/SellerDashboard';
 
@@ -24,18 +24,18 @@ interface Product {
   image?: string;
 }
 
-// ✅ 1. AdminRoute Component (ป้องกันคนนอกเข้าหน้าแอดมิน)
+// ✅ 1. AdminRoute: แก้เป็น 'ADMIN' (ตัวใหญ่)
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const role = localStorage.getItem('role');
   const token = localStorage.getItem('token');
   
-  if (!token || role !== 'admin') { 
+  if (!token || role !== 'ADMIN') { 
     return <Navigate to="/" replace />;
   }
   return children;
 };
 
-// ✅ 2. Header Component (แยกปุ่มตาม Role)
+// ✅ 2. Header: แก้ Role เป็นตัวใหญ่หมด ('ADMIN', 'SELLER', 'BUYER')
 function Header() {
   const navigate = useNavigate();
   const { user, logout } = useAuth(); 
@@ -57,7 +57,7 @@ function Header() {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '20px', alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
       {!isLoggedIn ? (
         <>
           <Link to="/register"><button style={{ padding: '10px 20px', cursor: 'pointer' }}>สมัครสมาชิก</button></Link>
@@ -65,8 +65,8 @@ function Header() {
         </>
       ) : (
         <>
-          {/* 🔴 ADMIN: เห็นปุ่มเข้าหน้า Dashboard */}
-          {user?.role === 'admin' && (
+          {/* 🔴 ADMIN */}
+          {user?.role === 'ADMIN' && (
             <Link to="/admin">
               <button style={{ padding: '10px 20px', cursor: 'pointer', background: '#d33', color: 'white', border: 'none', borderRadius: '5px' }}>
                 🛡️ จัดการสลิป (Admin)
@@ -74,8 +74,8 @@ function Header() {
             </Link>
           )}
 
-          {/* 🟠 SELLER: เห็นปุ่มลงขาย + รายได้ (ไม่เห็นตะกร้า) */}
-          {user?.role === 'seller' && (
+          {/* 🟠 SELLER */}
+          {user?.role === 'SELLER' && (
             <>
               <Link to="/add-product">
                 <button style={{ padding: '10px 20px', cursor: 'pointer', background: '#ff9800', color: 'white', border: 'none', borderRadius: '5px' }}>
@@ -90,8 +90,8 @@ function Header() {
             </>
           )}
 
-          {/* 🔵 BUYER: เห็นตะกร้า + ประวัติซื้อ (ไม่เห็นปุ่มขาย) */}
-          {user?.role === 'user' && ( // สมมติว่าใน DB คนซื้อคือ role='user'
+          {/* 🔵 BUYER: รองรับทั้ง 'BUYER' และ 'user' (เผื่อเคสเก่า) */}
+          {(user?.role === 'BUYER' || user?.role === 'user') && (
             <>
               <Link to="/cart" style={{ textDecoration: 'none', position: 'relative', marginLeft: '10px' }}>
                 <button style={{ padding: '10px 20px', cursor: 'pointer', background: '#6f42c1', color: 'white', border: 'none', borderRadius: '5px' }}>
@@ -182,18 +182,15 @@ function Home() {
                 <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#2ecc71' }}>฿{product.price}</span>
                 <div style={{ display: 'flex', gap: '5px' }}>
                   
-                  {/* เงื่อนไขแสดงปุ่มตาม Role */}
-                  
-                  {/* 1. Admin & Seller: เห็นปุ่ม แก้ไข/ลบ */}
-                  {(user?.role === 'admin' || user?.role === 'seller') && (
+                  {/* แก้ไขเงื่อนไข Role ให้เป็นตัวใหญ่ */}
+                  {(user?.role === 'ADMIN' || user?.role === 'SELLER') && (
                     <>
                         <Link to={`/edit/${product.id}`}><button style={{ padding: '5px 10px', background: '#ec12f3ff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>แก้ไข</button></Link>
                         <button onClick={() => handleDelete(product.id)} style={{ padding: '5px 10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>ลบ</button>
                     </>
                   )}
                   
-                  {/* 2. Buyer (User) เท่านั้น: เห็นปุ่มใส่ตะกร้า */}
-                  {user?.role === 'user' && (
+                  {(user?.role === 'BUYER' || user?.role === 'user') && (
                     <button 
                       onClick={() => addToCart(product)} 
                       style={{ padding: '5px 10px', background: '#6f42c1', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}

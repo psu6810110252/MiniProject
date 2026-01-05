@@ -19,11 +19,12 @@ export class UsersService {
     // 2. สร้าง User Object ใหม่
     const newUser = this.usersRepository.create({
       username: body.username,
-      password: hashedPassword, // เก็บตัวที่ Hash แล้วเท่านั้น!
-      role: 'BUYER' // ค่าเริ่มต้นให้เป็นคนซื้อ
+      password: hashedPassword,
+      role: body.role || 'BUYER', // ถ้าไม่ส่งมาให้เป็น BUYER
+      bankName: body.bankName,           // สำหรับ Seller
+      bankAccountNumber: body.bankAccountNumber, // สำหรับ Seller
     });
 
-    // 3. บันทึกลง Database
     return this.usersRepository.save(newUser);
   }
 

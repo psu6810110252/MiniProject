@@ -28,41 +28,43 @@ function Login() {
     try {
       const response = await axios.post('http://localhost:3000/auth/login', formData);
 
-      console.log("📌 Server Response:", response.data);
-
       const token = response.data.access_token || response.data.token;
-      const user = response.data.user;
+      const user = response.data.user; // Backend ส่งมาเช่น { role: 'SELLER', ... }
 
-      if (!token) {
-        throw new Error("ไม่พบ Token ในการตอบกลับจาก Server");
-      }
-      
-      const safeUser = user ? { ...user } : { id: 0, username: formData.username, role: 'user' };
-      if (!safeUser.role) safeUser.role = 'user';
+      if (!token) throw new Error("ไม่พบ Token");
 
+      // 🛠️ 1. ปรับ Role ให้เป็นตัวพิมพ์เล็ก และแปลง BUYER -> user เพื่อให้ตรงกับ App.tsx
+      let role = user?.role ? user.role.toLowerCase() : 'user';
+      if (role === 'buyer') role = 'user'; // แมพ BUYER ให้เป็น user
+
+      const safeUser = { ...user, role }; // อัปเดต role ที่แปลงแล้วกลับเข้าไป
+
+      // บันทึกลง Storage
       localStorage.setItem('token', token);
       localStorage.setItem('role', safeUser.role);
 
+      // อัปเดต Context
       if (login) {
         login(safeUser, token);
       }
 
-      alert(`✅ ยินดีต้อนรับคุณ ${safeUser.username}`);
-      navigate('/'); 
+      alert(`✅ ยินดีต้อนรับคุณ ${safeUser.username} (${safeUser.role})`);
+
+      // 🚀 2. Redirect ให้ตรงกับ Route ที่มีใน App.tsx
+      if (safeUser.role === 'admin') {
+        navigate('/admin');
+      } else if (safeUser.role === 'seller') {
+        navigate('/seller-dashboard'); // 👈 แก้ตรงนี้จาก /seller เป็น /seller-dashboard
+      } else {
+        navigate('/'); // user (buyer) ไปหน้าแรก
+      }
 
     } catch (error: any) {
       console.error("❌ Login Error:", error);
-
-      if (error.response) {
-        if (error.response.status === 401) {
-          setErrorMessage('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-        } else if (error.response.status === 404) {
-          setErrorMessage('ไม่พบ Server หรือ URL ผิดพลาด (404)');
-        } else {
-          setErrorMessage(`เกิดข้อผิดพลาด: ${error.response.data.message || 'Unknown Error'}`);
-        }
+      if (error.response && error.response.status === 401) {
+        setErrorMessage('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
       } else {
-        setErrorMessage('ไม่สามารถเชื่อมต่อ Server ได้ (ตรวจสอบว่าเปิด Backend หรือยัง)');
+        setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ');
       }
     } finally {
       setIsLoading(false);
@@ -108,17 +110,7 @@ function Login() {
         <button 
           type="submit" 
           disabled={isLoading}
-          style={{ 
-            width: '100%', 
-            padding: '12px', 
-            backgroundColor: isLoading ? '#ccc' : '#28a745',
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '5px', 
-            cursor: isLoading ? 'not-allowed' : 'pointer', 
-            fontSize: '16px', 
-            fontWeight: 'bold' 
-          }}
+          style={{ width: '100%', padding: '12px', backgroundColor: isLoading ? '#ccc' : '#28a745', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
         >
           {isLoading ? '⏳ กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
         </button>

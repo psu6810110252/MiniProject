@@ -1,16 +1,23 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity() // บอกว่านี่คือตารางใน Database
+@Entity()
 export class User {
-  @PrimaryGeneratedColumn() // id รันเลขอัตโนมัติ (1, 2, 3...)
+  @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true }) // ชื่อห้ามซ้ำ
+  @Column({ unique: true })
   username: string;
 
   @Column()
   password: string;
 
-  @Column({ default: 'BUYER' }) // ถ้าไม่ระบุ ให้เป็น BUYER (คนซื้อ)
-  role: string;
+  @Column({ default: 'BUYER' }) // ค่าเริ่มต้นเป็น BUYER
+  role: string; 
+
+  // เพิ่ม 2 บรรทัดนี้สำหรับ Seller
+  @Column({ nullable: true })
+  bankName: string;
+
+  @Column({ nullable: true })
+  bankAccountNumber: string;
 }
