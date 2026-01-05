@@ -20,11 +20,17 @@ export class AuthService {
     return null;
   }
 
-  // 2. ฟังก์ชันแจก Token
-  async login(user: any) {
-    const payload = { username: user.username, sub: user.id, role: user.role };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
-  }
+ async login(user: any) {
+  const payload = { username: user.username, sub: user.id, role: user.role };
+  
+  return {
+    access_token: this.jwtService.sign(payload),
+    // 👇 เพิ่มบรรทัดนี้ เพื่อส่งข้อมูล User กลับไปให้ Frontend
+    user: {
+      id: user.id,
+      username: user.username,
+      role: user.role, 
+    }
+  };
+}
 }

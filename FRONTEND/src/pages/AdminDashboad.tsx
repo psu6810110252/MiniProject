@@ -1,71 +1,91 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+interface Order {
+  id: number;
+  userId: number;
+  totalPrice: number;
+  status: string; // 'pending' | 'paid' | 'shipped'
+  slipImage?: string; // ชื่อไฟล์รูปสลิป
+}
 
 function AdminDashboard() {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const navigate = useNavigate();
 
-  const fetchAllOrders = async () => {
+  // 1. ดึงข้อมูล Order ทั้งหมด
+  const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:3000/orders/admin/all', {
+      // สมมติ API นี้ดึงรายการทั้งหมด (ต้องแก้ Backend ให้รองรับถ้ายังไม่มี)
+      const response = await axios.get('http://localhost:3000/orders/all', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setOrders(res.data);
-    } catch (err) {
-      console.error(err);
+      setOrders(response.data);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
     }
   };
 
-  const handleApprove = async (id: number) => {
-    if (!confirm('ยืนยันการตรวจสอบสลิปเรียบร้อยใช่ไหม?')) return;
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // 2. ฟังก์ชันอนุมัติสลิป (เปลี่ยน status เป็น paid)
+  const handleApprove = async (orderId: number) => {
+    if (!confirm('ยืนยันว่าสลิปถูกต้อง และต้องการอนุมัติ?')) return;
+    
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`http://localhost:3000/orders/${id}/approve`, {}, {
+      await axios.put(`http://localhost:3000/orders/${orderId}/approve`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('✅ อนุมัติเรียบร้อย!');
-      fetchAllOrders(); // โหลดข้อมูลใหม่
-    } catch (err) {
-      alert('❌ เกิดข้อผิดพลาด');
+      alert('✅ อนุมัติสำเร็จ!');
+      fetchOrders(); // รีเฟรชตาราง
+    } catch (error) {
+      console.error(error);
+      alert('❌ เกิดข้อผิดพลาดในการอนุมัติ');
     }
   };
-
-  useEffect(() => { fetchAllOrders(); }, []);
 
   return (
-    <div style={{ padding: '20px', color: 'white', maxWidth: '1000px', margin: '0 auto' }}>
-      <h1>👮‍♂️ Admin Dashboard (จัดการออเดอร์)</h1>
-      <table style={{ width: '100%', borderCollapse: 'collapse', background: '#222' }}>
+    <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
+      <h1>🛡️ Admin Dashboard (ตรวจสอบสลิป)</h1>
+      <button onClick={() => navigate('/')}>🏠 กลับหน้าหลัก</button>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
         <thead>
-          <tr style={{ background: '#333' }}>
-            <th style={{ padding: '10px' }}>ID</th>
-            <th>ลูกค้า</th>
-            <th>ยอดรวม</th>
-            <th>สลิป</th>
-            <th>สถานะ</th>
-            <th>จัดการ</th>
+          <tr style={{ background: '#333', color: 'white' }}>
+            <th style={{ padding: '10px' }}>Order ID</th>
+            <th style={{ padding: '10px' }}>ยอดเงิน</th>
+            <th style={{ padding: '10px' }}>หลักฐาน (สลิป)</th>
+            <th style={{ padding: '10px' }}>สถานะ</th>
+            <th style={{ padding: '10px' }}>จัดการ</th>
           </tr>
         </thead>
         <tbody>
-          {orders.map(order => (
-            <tr key={order.id} style={{ borderBottom: '1px solid #444', textAlign: 'center' }}>
-              <td style={{ padding: '10px' }}>{order.id}</td>
-              <td>{order.user?.username}</td>
-              <td>฿{order.totalPrice}</td>
-              <td>
+          {orders.map((order) => (
+            <tr key={order.id} style={{ borderBottom: '1px solid #ddd', textAlign: 'center' }}>
+              <td style={{ padding: '10px' }}>#{order.id}</td>
+              <td style={{ padding: '10px' }}>฿{order.totalPrice}</td>
+              <td style={{ padding: '10px' }}>
                 {order.slipImage ? (
-                  <a href={`http://localhost:3000/uploads/${order.slipImage}`} target="_blank">
-                    <img src={`http://localhost:3000/uploads/${order.slipImage}`} style={{ width: '50px' }} />
+                  <a href={`http://localhost:3000/uploads/${order.slipImage}`} target="_blank" rel="noreferrer">
+                    <img src={`http://localhost:3000/uploads/${order.slipImage}`} alt="Slip" style={{ width: '50px', height: '50px', objectFit: 'cover' }} />
                   </a>
-                ) : 'ไม่มีสลิป'}
+                ) : <span style={{ color: 'gray' }}>ไม่มีสลิป</span>}
               </td>
-              <td style={{ color: order.status === 'APPROVED' ? '#2ecc71' : '#f1c40f' }}>
-                {order.status}
+              <td style={{ padding: '10px', color: order.status === 'paid' ? 'green' : 'orange' }}>
+                {order.status.toUpperCase()}
               </td>
-              <td>
-                {order.status === 'PENDING' && (
-                  <button onClick={() => handleApprove(order.id)} style={{ background: '#28a745', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '5px', cursor: 'pointer' }}>
-                    ยืนยันการจ่ายเงิน
+              <td style={{ padding: '10px' }}>
+                {order.status === 'pending' && order.slipImage && (
+                  <button 
+                    onClick={() => handleApprove(order.id)}
+                    style={{ padding: '5px 10px', background: '#28a745', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+                  >
+                    ✅ อนุมัติ
                   </button>
                 )}
               </td>

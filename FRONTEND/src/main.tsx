@@ -6,7 +6,6 @@ import { CartProvider } from './context/CartContext.tsx'; // ✅ นำเข้
 import { AuthProvider } from './context/AuthContext.tsx';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    ReactDom.createRoot(document.getElementById('root')!).render( 
     <AuthProvider>
       <CartProvider> {/* ✅ หุ้ม App ไว้ */}
         <App />
