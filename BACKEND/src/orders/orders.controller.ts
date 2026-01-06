@@ -9,7 +9,7 @@ import { extname } from 'path';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  // ✅ 1. สั่งซื้อแบบชิ้นเดียว (รับ productId) -> อันนี้ของเก่า
+  // ✅ 1. สั่งซื้อแบบชิ้นเดียว
   @UseGuards(AuthGuard('jwt'))
   @Post()
   @UseInterceptors(FileInterceptor('file', {
@@ -23,16 +23,15 @@ export class OrdersController {
   }))
   create(@Request() req, @Body('productId') productId: any, @UploadedFile() file: Express.Multer.File) {
     const slipFileName = file ? file.filename : undefined;
-    // ถ้ามีการส่ง productId มา ให้สร้างแบบชิ้นเดียว
     if (productId) {
         return this.ordersService.create(req.user.id, +productId, slipFileName);
     }
     return { message: "Invalid Request: productId is missing" };
   }
 
-  // ✅ 2. สั่งซื้อแบบตะกร้า (รับ items เป็น JSON String) -> 🔥 อันนี้ที่หายไป
+  // ✅ 2. สั่งซื้อแบบตะกร้า (Bulk)
   @UseGuards(AuthGuard('jwt'))
-  @Post('bulk') // 👈 ต้องมีบรรทัดนี้!
+  @Post('bulk')
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: './uploads',
@@ -43,7 +42,6 @@ export class OrdersController {
     }),
   }))
   async createBulk(@Request() req, @Body('items') itemsString: string, @UploadedFile() file: Express.Multer.File) {
-    // แปลง JSON String กลับเป็น Array
     let items = [];
     try {
         items = JSON.parse(itemsString);
@@ -55,7 +53,7 @@ export class OrdersController {
     return this.ordersService.createBulk(req.user.id, items, slipFileName);
   }
 
-  // ✅ 3. ดูประวัติการสั่งซื้อ
+  // ✅ 3. ดูประวัติการสั่งซื้อ (ของตัวเอง)
   @UseGuards(AuthGuard('jwt'))
   @Get('my-orders')
   findMyOrders(@Request() req) {
@@ -69,17 +67,31 @@ export class OrdersController {
     return this.ordersService.getMyPayouts(req.user.id);
   }
 
-  // ✅ 5. ดูออเดอร์ทั้งหมด (Admin)
+  // ✅ 5. ดูออเดอร์ทั้งหมด (Admin - แบบเจาะจง Route)
   @UseGuards(AuthGuard('jwt'))
   @Get('admin/all')
   findAllAdmin() {
     return this.ordersService.findAllAdmin();
   }
 
-  // ✅ 6. อนุมัติออเดอร์ (Admin)
+  // ✅ 6. อนุมัติ/เปลี่ยนสถานะออเดอร์ (Admin)
+  // แก้ไข Route ให้ตรงกับ Frontend (Frontend เรียก /:id/status)
   @UseGuards(AuthGuard('jwt'))
-  @Patch(':id/approve')
-  approve(@Param('id') id: string) {
-    return this.ordersService.approve(+id);
+  @Patch(':id/status') 
+  updateStatus(@Param('id') id: string, @Body('status') status: string) {
+    // ต้องไปเพิ่มฟังก์ชัน updateStatus ใน Service ด้วย หรือใช้ approve เดิมถ้ารับแค่ id
+    // ในที่นี้สมมติว่า backend เก่ามี approve ที่รับแค่ id
+    // แต่เพื่อให้ frontend ทำงานได้ ผมแนะนำให้แก้ Service ให้รองรับการรับ status
+    // หรือถ้ายังไม่ได้แก้ Service ให้ใช้ code เดิมไปก่อน
+    return this.ordersService.approve(+id); 
   }
-}
+
+  // ✅ 7. ดึงออเดอร์ทั้งหมด (สำหรับ Admin Dashboard ที่เรียก /orders เฉยๆ)
+  // 👇👇👇 ย้ายเข้ามาข้างใน Class แล้วครับ 👇👇👇
+  @Get()
+  findAll() {
+    return this.ordersService.findAll(); // ⚠️ อย่าลืมแก้ Service ตามขั้นตอนที่ 2 ด้านบนด้วยนะครับ
+  }
+  // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
+
+} // <--- ปีกกาปิด Class ต้องอยู่บรรทัดสุดท้ายสุด

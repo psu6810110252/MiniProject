@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 function Register() {
   const navigate = useNavigate();
   
-  // เพิ่ม state สำหรับ role และข้อมูลธนาคาร
+  // State สำหรับเก็บข้อมูลฟอร์ม
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -31,9 +31,10 @@ function Register() {
         delete (payload as any).bankAccountNumber;
       }
 
+      // ยิง API สมัครสมาชิก
       await axios.post('http://localhost:3000/users/register', payload);
       alert('✅ สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
-      navigate('/login'); // เด้งไปหน้า Login
+      navigate('/login');
     } catch (error) {
       console.error(error);
       alert('❌ สมัครไม่ผ่าน: ชื่อผู้ใช้อาจซ้ำหรือระบบมีปัญหา');
@@ -41,79 +42,97 @@ function Register() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '400px', margin: '50px auto', border: '1px solid #ddd', borderRadius: '8px' }}>
-      <h1 style={{ textAlign: 'center' }}>📝 สมัครสมาชิก</h1>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Username:</label>
-          <input
-            type="text"
-            name="username"
-            onChange={handleChange}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            required
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>Password:</label>
-          <input
-            type="password"
-            name="password"
-            onChange={handleChange}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            required
-          />
-        </div>
+    <div className="auth-container">
+      <h1 className="main-title">
+        Lecture Clubhouse 🏡💖
+      </h1>
+      
+      <div className="auth-card">
+        <h2 className="auth-title">สมัครสมาชิกใหม่ 🚀</h2>
+        <p className="auth-subtitle">สร้างบัญชีเพื่อเริ่มต้นใช้งาน</p>
 
-        {/* ส่วนเลือก Role */}
-        <div style={{ marginBottom: '15px' }}>
-          <label>สถานะ:</label>
-          <select 
-            name="role" 
-            value={formData.role} 
-            onChange={handleChange}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          >
-            <option value="BUYER">ผู้ซื้อ (Buyer)</option>
-            <option value="SELLER">ผู้ขาย (Seller)</option>
-            <option value="ADMIN">ผู้ดูแลระบบ (Admin - Test)</option>
-          </select>
-        </div>
-
-        {/* ส่วนข้อมูลธนาคาร (โชว์เฉพาะ Seller) */}
-        {formData.role === 'SELLER' && (
-          <div style={{ padding: '10px', backgroundColor: '#f9f9f9', border: '1px dashed #ccc', marginBottom: '15px' }}>
-            <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#555' }}>🏦 ข้อมูลรับเงิน (สำหรับผู้ขาย)</p>
-            <div style={{ marginBottom: '10px' }}>
-              <input
-                type="text"
-                name="bankName"
-                placeholder="ชื่อธนาคาร (เช่น KBANK)"
-                onChange={handleChange}
-                style={{ width: '100%', padding: '8px' }}
-                required
-              />
-            </div>
-            <div>
-              <input
-                type="text"
-                name="bankAccountNumber"
-                placeholder="เลขที่บัญชี"
-                onChange={handleChange}
-                style={{ width: '100%', padding: '8px' }}
-                required
-              />
-            </div>
+        <form onSubmit={handleSubmit}>
+          
+          <div className="form-group">
+            <label className="form-label">ชื่อผู้ใช้ (Username)</label>
+            <input
+              type="text"
+              name="username"
+              className="form-input"
+              placeholder="ตั้งชื่อผู้ใช้เท่ๆ"
+              onChange={handleChange}
+              required
+            />
           </div>
-        )}
 
-        <button 
-          type="submit"
-          style={{ width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
-        >
-          ยืนยันการสมัคร
-        </button>
-      </form>
+          <div className="form-group">
+            <label className="form-label">รหัสผ่าน (Password)</label>
+            <input
+              type="password"
+              name="password"
+              className="form-input"
+              placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร"
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* ส่วนเลือก Role */}
+          <div className="form-group">
+            <label className="form-label">สถานะ (Role)</label>
+            <select 
+              name="role" 
+              className="form-input"
+              value={formData.role} 
+              onChange={handleChange}
+              style={{ cursor: 'pointer' }}
+            >
+              <option value="BUYER">ผู้ซื้อ (Buyer)</option>
+              <option value="SELLER">ผู้ขาย (Seller)</option>
+              <option value="ADMIN">ผู้ดูแลระบบ (Admin - Test)</option>
+            </select>
+          </div>
+
+          {/* ส่วนข้อมูลธนาคาร (โชว์เฉพาะ Seller) */}
+          {formData.role === 'SELLER' && (
+            <div style={{ marginTop: '20px', padding: '15px', background: '#f9fafb', borderRadius: '8px', border: '1px dashed #d1d5db' }}>
+              <h4 style={{ margin: '0 0 15px 0', color: '#6f42c1', fontSize: '0.95rem' }}>🏦 ข้อมูลรับเงิน (สำหรับผู้ขาย)</h4>
+              
+              <div className="form-group">
+                <label className="form-label">ชื่อธนาคาร</label>
+                <input
+                  type="text"
+                  name="bankName"
+                  className="form-input"
+                  placeholder="เช่น KBANK, SCB"
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">เลขที่บัญชี</label>
+                <input
+                  type="text"
+                  name="bankAccountNumber"
+                  className="form-input"
+                  placeholder="XXX-X-XXXXX-X"
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          <button type="submit" className="auth-btn">
+            ยืนยันการสมัคร
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          มีบัญชีอยู่แล้ว? <Link to="/login" className="auth-link">เข้าสู่ระบบ</Link>
+        </div>
+      </div>
     </div>
   );
 }

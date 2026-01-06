@@ -1,19 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
-import { BrowserRouter } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext' // ✅ ย้ายมาที่นี่
-import { CartProvider } from './context/CartContext' // ✅ ย้ายมาที่นี่
+
+// ✅ สำคัญ: Import CSS ตรงนี้
+import './index.css' 
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-      {/* 2. ตามด้วย AuthProvider (เพื่อให้ใช้ navigate ได้) */}
-      <AuthProvider>
-        {/* 3. ตามด้วย CartProvider */}
-        <CartProvider>
-          {/* 4. แอพอยู่ข้างในสุด */}
-          <App />
-        </CartProvider>
-      </AuthProvider>
+    {/* ❌ ไม่ต้องใส่ AuthProvider, CartProvider หรือ BrowserRouter ตรงนี้ */}
+    {/* เพราะใน App.tsx เราใส่ไว้ครบหมดแล้วครับ */}
+    <App />
   </React.StrictMode>,
 )

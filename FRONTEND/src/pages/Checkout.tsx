@@ -1,34 +1,46 @@
 import { useState } from 'react';
-import { useCart } from '../context/CartContext'; // ตรวจสอบว่า path ถูกต้อง
-import { useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 export default function Checkout() {
-  const { cart, clearCart } = useCart(); // ดึงข้อมูลจาก CartContext
-  // คำนวณยอดรวม (ถ้าใน Context มี total ให้ใช้อันนั้น แต่ถ้าไม่มีให้คำนวณใหม่แบบนี้ถูกต้องแล้วครับ)
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  
-  const [file, setFile] = useState<File | null>(null);
+  const { cart, clearCart, removeFromCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [file, setFile] = useState<File | null>(null);
+
+  // คำนวณยอดรวม (รองรับกรณีมี Quantity)
+  const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
 
   const handleFileChange = (e: any) => {
-    setFile(e.target.files[0]);
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
   };
 
   const handleCheckout = async () => {
+    if (!user) {
+      alert('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ');
+      navigate('/login');
+      return;
+    }
+
     if (cart.length === 0) return alert('ตะกร้าว่างเปล่า!');
-    if (!file) return alert('กรุณาแนบสลิปโอนเงิน');
+    if (!file) return alert('⚠️ กรุณาแนบสลิปโอนเงินก่อนกดยืนยันครับ');
+
+    // ถามยืนยัน
+    if (!confirm(`ยืนยันการสั่งซื้อยอดรวม ฿${total.toLocaleString()}?`)) return;
 
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       
-      // ส่งข้อมูลรายการสินค้า (แปลงเป็น JSON string)
+      // ส่งข้อมูลรายการสินค้า
       formData.append('items', JSON.stringify(cart));
       // ส่งไฟล์สลิป
       formData.append('file', file);
 
-      // ✅ แก้ไขตรงนี้: เปลี่ยน URL เป็น /orders/bulk เพื่อให้ Backend รู้ว่าเป็นตะกร้าสินค้า
       await axios.post('http://localhost:3000/orders/bulk', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -36,9 +48,10 @@ export default function Checkout() {
         },
       });
 
-      alert('✅ สั่งซื้อสำเร็จ! กรุณารอแอดมินตรวจสอบ');
-      clearCart(); // ล้างตะกร้า
-      navigate('/my-orders'); // เด้งไปหน้าประวัติการสั่งซื้อ
+      alert('🎉 สั่งซื้อสำเร็จ! ระบบกำลังตรวจสอบสลิปของคุณ');
+      clearCart(); 
+      navigate('/my-orders'); 
+
     } catch (error) {
       console.error(error);
       alert('❌ เกิดข้อผิดพลาดในการสั่งซื้อ');
@@ -46,42 +59,104 @@ export default function Checkout() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
-      <h1>🛒 ชำระเงิน (Checkout)</h1>
-      
-      {/* รายการสินค้าสรุป */}
-      <div style={{ background: '#f9f9f9', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h3>สรุปรายการสินค้า</h3>
-        {cart.map((item) => (
-          <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #ddd', padding: '8px 0' }}>
-            <span>{item.title} x {item.quantity}</span>
-            <span>฿{(item.price * item.quantity).toLocaleString()}</span>
-          </div>
-        ))}
-        <div style={{ marginTop: '15px', fontSize: '1.2rem', fontWeight: 'bold', textAlign: 'right' }}>
-          ยอดรวมทั้งสิ้น: <span style={{ color: '#28a745' }}>฿{total.toLocaleString()}</span>
+    <div className="dashboard-container">
+      <h1 className="dashboard-title" style={{ textAlign: 'center', marginBottom: '10px' }}>
+        🛒 ตะกร้าสินค้า & ชำระเงิน
+      </h1>
+
+      {cart.length === 0 ? (
+        <div className="empty-cart">
+          <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🛒💨</div>
+          <h3>ตะกร้าสินค้าว่างเปล่า</h3>
+          <Link to="/">
+            <button className="nav-btn btn-primary" style={{ marginTop: '20px' }}>
+              ไปเลือกซื้อสินค้า
+            </button>
+          </Link>
         </div>
-      </div>
+      ) : (
+        <div className="cart-container">
+          
+          {/* --- ฝั่งซ้าย: รายการสินค้า --- */}
+          <div className="cart-items">
+            <table className="cart-table">
+              <tbody>
+                {cart.map((item, index) => (
+                  <tr key={`${item.id}-${index}`} className="cart-item-row">
+                    <td style={{ width: '100px' }}>
+                      <img 
+                        src={`http://localhost:3000/uploads/${item.image}`} 
+                        alt={item.title} 
+                        className="cart-img"
+                      />
+                    </td>
+                    <td>
+                      <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem' }}>{item.title}</h3>
+                      <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>
+                        จำนวน: {item.quantity || 1}
+                      </p>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem', color: '#333' }}>
+                      ฿{(item.price * (item.quantity || 1)).toLocaleString()}
+                    </td>
+                    <td style={{ width: '50px', textAlign: 'center' }}>
+                      <button 
+                        onClick={() => removeFromCart(item.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
+                        title="ลบรายการ"
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* ส่วนโอนเงิน */}
-      <div style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px' }}>
-        <h3>💳 ช่องทางการโอนเงิน</h3>
-        <p>ธนาคาร: <b>KBANK (กสิกรไทย)</b></p>
-        <p>เลขบัญชี: <b>123-4-56789-0</b></p>
-        <p>ชื่อบัญชี: <b>บริษัท MiniProject จำกัด</b></p>
-        
-        <hr style={{ margin: '20px 0' }} />
-        
-        <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>แนบหลักฐานการโอนเงิน (สลิป):</label>
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-      </div>
+          {/* --- ฝั่งขวา: สรุปยอด + โอนเงิน --- */}
+          <div className="cart-summary">
+            <div className="summary-card">
+              <h3 style={{ marginTop: 0 }}>สรุปคำสั่งซื้อ</h3>
+              
+              <div className="summary-total">
+                <span>ยอดรวมสุทธิ</span>
+                <span style={{ color: '#6f42c1' }}>฿{total.toLocaleString()}</span>
+              </div>
 
-      <button 
-        onClick={handleCheckout}
-        style={{ width: '100%', padding: '15px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', fontSize: '1.1rem', marginTop: '20px', cursor: 'pointer', fontWeight: 'bold' }}
-      >
-        ยืนยันการสั่งซื้อ 🚀
-      </button>
+              {/* ส่วนข้อมูลธนาคาร */}
+              <div style={{ marginTop: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '10px', border: '1px dashed #ccc' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.95rem', color: '#333' }}>💳 โอนเงินเข้าบัญชี</h4>
+                <div style={{ fontSize: '0.9rem', color: '#555', marginBottom: '5px' }}>
+                  ธ.กสิกรไทย (KBANK)
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#000', fontFamily: 'monospace' }}>
+                  123-4-56789-0
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#666' }}>บจก. Lecture Clubhouse</div>
+              </div>
+
+              {/* ส่วนแนบสลิป */}
+              <div style={{ marginTop: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500' }}>
+                  หลักฐานการโอนเงิน (Slip)
+                </label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange}
+                  style={{ width: '100%', fontSize: '0.9rem' }}
+                />
+              </div>
+
+              <button onClick={handleCheckout} className="btn-checkout">
+                แจ้งชำระเงินทันที ✅
+              </button>
+            </div>
+          </div>
+
+        </div>
+      )}
     </div>
   );
 }

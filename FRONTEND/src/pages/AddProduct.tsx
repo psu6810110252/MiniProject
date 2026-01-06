@@ -2,82 +2,108 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-function AddProduct() {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: 0,
-  });
+export default function AddProduct() {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
   const [file, setFile] = useState<File | null>(null);
-
-  const handleChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const navigate = useNavigate();
 
   const handleFileChange = (e: any) => {
-    setFile(e.target.files[0]);
+    if (e.target.files) {
+      setFile(e.target.files[0]);
+    }
   };
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    if (!file) {
-      alert('⚠️ กรุณาอัปโหลดรูปปก Lecture ด้วยครับ');
-      return;
-    }
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('price', price);
+    if (file) formData.append('file', file);
 
     try {
-      const token = localStorage.getItem('token');
-      const data = new FormData();
-      data.append('title', formData.title);
-      data.append('description', formData.description);
-      data.append('price', String(formData.price));
-      data.append('file', file); // ส่งไฟล์ไปที่ Backend
-
-      await axios.post('http://localhost:3000/products', data, {
-        headers: { 
+      await axios.post('http://localhost:3000/products', formData, {
+        headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        } 
+          'Content-Type': 'multipart/form-data',
+        },
       });
-
-      alert('✅ ลงขาย Lecture เรียบร้อย!');
-      navigate('/seller-dashboard'); // ลงเสร็จให้เด้งไปหน้า Dashboard
-    } catch (error) {
-      console.error(error);
-      alert('❌ เกิดข้อผิดพลาด: กรุณาล็อกอินใหม่');
+      alert('✅ ลงขายเรียบร้อย!');
+      navigate('/seller-dashboard');
+    } catch (err) {
+      console.error(err);
+      alert('❌ เกิดข้อผิดพลาด');
     }
   };
 
   return (
-    <div style={{ padding: '30px', maxWidth: '500px', margin: '40px auto', background: 'white', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ textAlign: 'center', color: '#333' }}>📚 ลงขาย Lecture ใหม่</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>ชื่อวิชา / หัวข้อ:</label>
-          <input type="text" name="title" onChange={handleChange} required style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>รายละเอียด:</label>
-          <textarea name="description" rows={4} onChange={handleChange} required style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>ราคา (บาท):</label>
-          <input type="number" name="price" onChange={handleChange} required style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
-        </div>
+    <div className="form-container">
+      <div className="form-card">
+        <h1 className="form-title">✨ ลงขาย Lecture ใหม่</h1>
         
-        <div style={{ marginBottom: '20px', background: '#f9f9f9', padding: '15px', borderRadius: '5px', border: '1px dashed #ccc' }}>
-          <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold', color: '#555' }}>📸 รูปปก Lecture:</label>
-          <input type="file" accept="image/*" onChange={handleFileChange} required />
-          {file && <p style={{ fontSize: '0.8rem', color: 'green', marginTop: '5px' }}>ไฟล์ที่เลือก: {file.name}</p>}
-        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">ชื่อวิชา / หัวข้อ:</label>
+            <input 
+              type="text" 
+              className="form-control"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              required
+              placeholder="เช่น สรุปเคมี ม.ปลาย, แคลคูลัส 1 (บทที่ 1-3)"
+            />
+          </div>
 
-        <button type="submit" style={{ width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
-          + ยืนยันการลงขาย
-        </button>
-      </form>
+          <div className="form-group">
+            <label className="form-label">รายละเอียด:</label>
+            <textarea 
+              className="form-control"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              required
+              placeholder="อธิบายเกี่ยวกับ Lecture ของคุณ..."
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">ราคา (บาท):</label>
+            <input 
+              type="number" 
+              className="form-control"
+              value={price}
+              onChange={e => setPrice(e.target.value)}
+              required
+              min="0"
+              placeholder="เช่น 159"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">รูปปก Lecture:</label>
+            {/* ซ่อน input file ของจริงไว้ แล้วสร้าง UI สวยๆ มาครอบ */}
+            <div className="file-upload-container" onClick={() => document.getElementById('fileInput')?.click()}>
+              <span style={{ fontSize: '3rem' }}>📁</span>
+              <label htmlFor="fileInput" className="file-upload-label">
+                {file ? `✅ เลือกไฟล์แล้ว: ${file.name}` : 'คลิกเพื่อเลือกรูปภาพ'}
+              </label>
+              <input 
+                id="fileInput"
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileChange}
+                style={{ display: 'none' }} // ซ่อน input ของจริง
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="btn-submit btn-submit-primary">
+            + ยืนยันการลงขาย
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
-
-export default AddProduct;

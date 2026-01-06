@@ -1,26 +1,28 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import MyProducts from './pages/SellerDashboard'; 
+
 import Checkout from './pages/Checkout';
 import MyOrders from './pages/MyOrders'; 
 import SellerDashboard from './pages/SellerDashboard';
 import { CartProvider, useCart } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext'; 
 
-// ✅ 1. Import ไฟล์ AdminDashboard ของจริงเข้ามา
 import AdminDashboard from './pages/AdminDashboard';
+import AddProduct from './pages/AddProduct';
+import EditProduct from './pages/EditProduct';
 
-// ❌ (ลบโค้ด Placeholder เดิมออกแล้ว เพราะเราใช้ไฟล์จริงแล้ว)
+// ✅ 1. Import Navbar เข้ามา
+import Navbar from './components/Navbar';
 
 // Component หน้าร้านค้า (Home)
 function Home() {
   const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const { addToCart, cart } = useCart();
-  const navigate = useNavigate();
+  // ❌ ไม่ต้องดึง cart มาโชว์ตัวเลขแล้ว (Navbar จัดการให้)
+  const { addToCart } = useCart(); 
 
   useEffect(() => {
     axios.get('http://localhost:3000/products').then((res) => {
@@ -28,10 +30,7 @@ function Home() {
     });
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
+  // ❌ ลบ handleLogout ออก (Navbar จัดการให้)
 
   // กรองสินค้าตามคำค้นหา
   const filteredProducts = products.filter(p => 
@@ -41,34 +40,10 @@ function Home() {
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', color: '#333' }}>
       
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '3rem', margin: '10px 0', color: '#f0f0f0' }}>
-          🏠 Lecture Clubhouse 💗
-        </h1>
-        
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '20px' }}>
-          <Link to="/checkout">
-            <button style={{ padding: '10px 20px', background: '#6f42c1', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-              🛒 ตะกร้า ({cart.length})
-            </button>
-          </Link>
-          <Link to="/my-orders">
-            <button style={{ padding: '10px 20px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
-              📜 ประวัติการสั่งซื้อ
-            </button>
-          </Link>
-          <button 
-            onClick={handleLogout}
-            style={{ padding: '10px 20px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            ออกจากระบบ
-          </button>
-        </div>
-      </div>
+      {/* ❌ ลบ Header/ปุ่มเดิมออก เพราะมี Navbar แล้ว */}
 
-      {/* Search Bar */}
-      <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>
+      {/* Search Bar (ปรับ margin ด้านบนเพิ่มนิดหน่อย) */}
+      <div style={{ marginTop: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>
         <input 
           type="text" 
           placeholder="🔍 ค้นหาสินค้า..." 
@@ -129,6 +104,9 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
+          {/* ✅ 2. ใส่ Navbar ไว้ตรงนี้ (เพื่อให้แสดงผลทุกหน้า) */}
+          <Navbar />
+
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
@@ -140,12 +118,15 @@ export default function App() {
             
             {/* Seller Routes */}
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
-            <Route path="/my-products" element={<MyProducts />} />
-            <Route path="/add-product" element={<MyProducts />} />
-            <Route path="/edit/:id" element={<MyProducts />} />
+            
+            {/* ถ้ายังต้องการเข้าผ่าน /my-products ก็ให้ชี้ไปที่ Dashboard */}
+            <Route path="/my-products" element={<SellerDashboard />} />
+
+            {/* Seller Forms */}
+            <Route path="/add-product" element={<AddProduct />} />
+            <Route path="/edit/:id" element={<EditProduct />} />
 
             {/* Admin Routes */}
-            {/* ✅ เรียกใช้ AdminDashboard ที่ import มา */}
             <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </CartProvider>

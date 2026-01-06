@@ -158,12 +158,20 @@ export class OrdersService {
     });
   }
 
-  // ดูประวัติการสั่งซื้อของ User (Buyer)
-  findAll(userId: number) {
-    return this.ordersRepository.find({
-      where: { user: { id: userId } as any },
-      relations: ['orderItems', 'orderItems.product'],
-      order: { createdAt: 'DESC' }
-    });
-  }
+  // ใน orders.service.ts
+findAll(userId?: number) { // อาจจะต้องแก้ signature เดิม
+   if (userId) {
+      // logic เดิมสำหรับ findMyOrders
+      return this.ordersRepository.find({
+         where: { user: { id: userId } },
+         relations: ['orderItems', 'orderItems.product'],
+         order: { createdAt: 'DESC' }
+      });
+   }
+   // logic ใหม่สำหรับ Admin (ดึงทั้งหมด)
+   return this.ordersRepository.find({
+      relations: ['user', 'orderItems', 'orderItems.product'],
+      order: { createdAt: 'DESC' },
+   });
+}
 }
