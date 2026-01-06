@@ -1,15 +1,15 @@
-import { Controller, Post, Body, UseGuards, Request, Get, UseInterceptors, UploadedFile, Param, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { SetMetadata } from '@nestjs/common';
 
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  // ✅ 1. สั่งซื้อแบบชิ้นเดียว (รับ productId) -> อันนี้ของเก่า
   @UseGuards(AuthGuard('jwt'))
   @Post()
   @UseInterceptors(FileInterceptor('file', {
@@ -21,14 +21,18 @@ export class OrdersController {
       },
     }),
   }))
-  create(@Request() req, @Body('productId') productId: number, @UploadedFile() file: Express.Multer.File) {
+  create(@Request() req, @Body('productId') productId: any, @UploadedFile() file: Express.Multer.File) {
     const slipFileName = file ? file.filename : undefined;
-    return this.ordersService.create(req.user.id, +productId, slipFileName);
+    // ถ้ามีการส่ง productId มา ให้สร้างแบบชิ้นเดียว
+    if (productId) {
+        return this.ordersService.create(req.user.id, +productId, slipFileName);
+    }
+    return { message: "Invalid Request: productId is missing" };
   }
 
-  // 🔥 เพิ่ม Endpoint สำหรับรับข้อมูลตะกร้าสินค้า
+  // ✅ 2. สั่งซื้อแบบตะกร้า (รับ items เป็น JSON String) -> 🔥 อันนี้ที่หายไป
   @UseGuards(AuthGuard('jwt'))
-  @Post('bulk')
+  @Post('bulk') // 👈 ต้องมีบรรทัดนี้!
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: './uploads',
@@ -39,34 +43,43 @@ export class OrdersController {
     }),
   }))
   async createBulk(@Request() req, @Body('items') itemsString: string, @UploadedFile() file: Express.Multer.File) {
-    const items = JSON.parse(itemsString); // แปลง JSON String กลับเป็น Array
+    // แปลง JSON String กลับเป็น Array
+    let items = [];
+    try {
+        items = JSON.parse(itemsString);
+    } catch (e) {
+        console.error("Parse Error:", e);
+    }
+
     const slipFileName = file ? file.filename : undefined;
     return this.ordersService.createBulk(req.user.id, items, slipFileName);
   }
 
+  // ✅ 3. ดูประวัติการสั่งซื้อ
   @UseGuards(AuthGuard('jwt'))
-  @Get()
-  findAll(@Request() req) {
+  @Get('my-orders')
+  findMyOrders(@Request() req) {
     return this.ordersService.findAll(req.user.id);
   }
 
+  // ✅ 4. ดูรายได้ผู้ขาย
   @UseGuards(AuthGuard('jwt'))
-  @SetMetadata('roles', ['admin']) 
+  @Get('payouts/my')
+  async getMyPayouts(@Request() req) {
+    return this.ordersService.getMyPayouts(req.user.id);
+  }
+
+  // ✅ 5. ดูออเดอร์ทั้งหมด (Admin)
+  @UseGuards(AuthGuard('jwt'))
   @Get('admin/all')
   findAllAdmin() {
     return this.ordersService.findAllAdmin();
   }
 
+  // ✅ 6. อนุมัติออเดอร์ (Admin)
   @UseGuards(AuthGuard('jwt'))
   @Patch(':id/approve')
   approve(@Param('id') id: string) {
     return this.ordersService.approve(+id);
   }
-
-  @UseGuards(AuthGuard('jwt'))
-@Get('payouts/my')
-async getMyPayouts(@Request() req) {
-  // ต้องสร้างฟังก์ชัน getMyPayouts ใน OrdersService เพื่อดึงข้อมูลจาก Repository ของ Payout
-  return this.ordersService.getMyPayouts(req.user.id);
-}
 }

@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Order } from './order.entity';
-import { Product } from '../products/entities/product.entity'; // สินค้ายังอยู่ที่เดิม
+import { Product } from '../products/entities/product.entity';
 
 @Entity()
 export class OrderItem {
@@ -16,6 +16,8 @@ export class OrderItem {
   @ManyToOne(() => Order, (order) => order.orderItems, { onDelete: 'CASCADE' })
   order: Order;
 
-  @ManyToOne(() => Product)
+  // ✅ แก้ไขตรงนี้: เพิ่ม { onDelete: 'CASCADE' }
+  // ความหมาย: เมื่อ Product ถูกลบ -> ให้ลบ OrderItem บรรทัดนี้ทิ้งด้วย
+  @ManyToOne(() => Product, { onDelete: 'CASCADE' })
   product: Product;
 }

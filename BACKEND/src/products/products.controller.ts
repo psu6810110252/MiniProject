@@ -1,27 +1,25 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { AuthGuard } from '@nestjs/passport';
-import { FileInterceptor } from '@nestjs/platform-express'; // ตัวดักจับไฟล์
-import { diskStorage } from 'multer'; // ตัวจัดการการเซฟลงเครื่อง
-import { extname } from 'path'; // ตัวดึงนามสกุลไฟล์
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  // ✅ แก้ไข 1: เปลี่ยนมาใช้ฟังก์ชัน findByUser ที่เราเพิ่มใน Service
+  // วิธีนี้จะค้นหาจาก Database โดยตรง แม่นยำกว่าการ filter เอง
+  @UseGuards(AuthGuard('jwt'))
+  @Get('my-products')
+  findMyProducts(@Request() req) {
+    return this.productsService.findByUser(req.user.id);
+  }
+
   @Get()
   findAll() {
     return this.productsService.findAll();
-  }
-
-  // ✅ เพิ่มใหม่: Endpoint ดึงสินค้าเฉพาะของคนขายคนนั้น (สำหรับ Seller Dashboard)
-  // ต้องแน่ใจว่าใน products.service.ts มีเมธอด findByUser แล้วนะครับ
-  @UseGuards(AuthGuard('jwt'))
-  @Get('my-products')
-  async findMyProducts(@Request() req) {
-    const products = await this.productsService.findAll();
-    // filter products by the authenticated user's id; adjust the property name if your product uses a different owner field
-    return (products || []).filter((p: any) => p.userId === req.user.id);
   }
 
   @Get(':id')
@@ -34,9 +32,8 @@ export class ProductsController {
   @Post()
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
-      destination: './uploads', // เซฟลงโฟลเดอร์ uploads
+      destination: './uploads',
       filename: (req, file, callback) => {
-        // ตั้งชื่อไฟล์ใหม่เป็น "random + นามสกุลเดิม" (กันชื่อซ้ำ)
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         const ext = extname(file.originalname);
         callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
@@ -44,7 +41,7 @@ export class ProductsController {
     }),
   }))
   create(@Body() createProductDto: any, @Request() req: any, @UploadedFile() file: Express.Multer.File) {
-    // ✅ แก้จุดตาย: แปลงค่า price จาก String เป็น Number (เพราะ FormData ส่งมาเป็น String)
+    // แปลงค่า price เป็นตัวเลข
     if (createProductDto.price) {
       createProductDto.price = Number(createProductDto.price);
     }
@@ -53,6 +50,8 @@ export class ProductsController {
     if (file) {
       createProductDto.image = file.filename;
     }
+    
+    // ส่ง req.user ไปให้ service เพื่อบันทึกคนขาย
     return this.productsService.create(createProductDto, req.user);
   }
 
@@ -65,7 +64,6 @@ export class ProductsController {
   @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateProductDto: any) {
-    // ✅ เพิ่มการแปลงค่า price ตอนแก้ไขด้วย
     if (updateProductDto.price) {
       updateProductDto.price = Number(updateProductDto.price);
     }

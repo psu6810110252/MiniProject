@@ -21,16 +21,18 @@ function AddProduct() {
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
+    if (!file) {
+      alert('⚠️ กรุณาอัปโหลดรูปปก Lecture ด้วยครับ');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
-      
       const data = new FormData();
       data.append('title', formData.title);
       data.append('description', formData.description);
       data.append('price', String(formData.price));
-      if (file) {
-        data.append('file', file);
-      }
+      data.append('file', file); // ส่งไฟล์ไปที่ Backend
 
       await axios.post('http://localhost:3000/products', data, {
         headers: { 
@@ -39,39 +41,39 @@ function AddProduct() {
         } 
       });
 
-      alert('✅ ลงขายพร้อมรูปเรียบร้อย!');
-      navigate('/');
+      alert('✅ ลงขาย Lecture เรียบร้อย!');
+      navigate('/seller-dashboard'); // ลงเสร็จให้เด้งไปหน้า Dashboard
     } catch (error) {
       console.error(error);
-      alert('❌ ลงขายไม่ได้: กรุณาล็อกอินก่อน หรือเซิฟเวอร์มีปัญหา');
+      alert('❌ เกิดข้อผิดพลาด: กรุณาล็อกอินใหม่');
     }
   };
 
   return (
-    // 🚩 แก้ไข: เอา color: 'white' ออก และใส่สีดำแทนเพื่อให้เห็นชัดบนพื้นขาว
-    <div style={{ padding: '20px', maxWidth: '400px', margin: '50px auto', color: '#333', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-      <h1 style={{ textAlign: 'center' }}>📦 ลงขายสินค้า</h1>
+    <div style={{ padding: '30px', maxWidth: '500px', margin: '40px auto', background: 'white', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+      <h2 style={{ textAlign: 'center', color: '#333' }}>📚 ลงขาย Lecture ใหม่</h2>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>ชื่อสินค้า:</label>
-          <input type="text" name="title" onChange={handleChange} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>ชื่อวิชา / หัวข้อ:</label>
+          <input type="text" name="title" onChange={handleChange} required style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>รายละเอียด:</label>
-          <textarea name="description" onChange={handleChange} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>รายละเอียด:</label>
+          <textarea name="description" rows={4} onChange={handleChange} required style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
         </div>
         <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>ราคา (บาท):</label>
-          <input type="number" name="price" onChange={handleChange} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>ราคา (บาท):</label>
+          <input type="number" name="price" onChange={handleChange} required style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
         </div>
         
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>รูปภาพสินค้า:</label>
-          <input type="file" accept="image/*" onChange={handleFileChange} style={{ marginTop: '5px' }} />
+        <div style={{ marginBottom: '20px', background: '#f9f9f9', padding: '15px', borderRadius: '5px', border: '1px dashed #ccc' }}>
+          <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold', color: '#555' }}>📸 รูปปก Lecture:</label>
+          <input type="file" accept="image/*" onChange={handleFileChange} required />
+          {file && <p style={{ fontSize: '0.8rem', color: 'green', marginTop: '5px' }}>ไฟล์ที่เลือก: {file.name}</p>}
         </div>
 
-        <button type="submit" style={{ padding: '12px', background: '#ff9800', color: 'white', border: 'none', cursor: 'pointer', width: '100%', borderRadius: '5px', fontSize: '16px', fontWeight: 'bold' }}>
-          + ลงขายทันที
+        <button type="submit" style={{ width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+          + ยืนยันการลงขาย
         </button>
       </form>
     </div>

@@ -15,7 +15,7 @@ export class OrdersService {
     private dataSource: DataSource, // สำหรับทำ Transaction
   ) {}
 
-  // ฟังก์ชันเดิมสำหรับการซื้อทีละชิ้น
+  // ฟังก์ชันเดิมสำหรับการซื้อทีละชิ้น (เก็บไว้เผื่อใช้)
   async create(userId: number, productId: number, slipImage?: string) {
     const product = await this.productsRepository.findOneBy({ id: productId });
     if (!product) throw new Error('สินค้าไม่ถูกต้อง');
@@ -50,12 +50,16 @@ export class OrdersService {
       const order = new Order();
       order.user = { id: userId } as any;
       order.status = 'PENDING';
+      
       // คำนวณราคาทั้งตะกร้า
       order.totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
       if (slipImage) order.slipImage = slipImage;
 
+      // Save Order
       const savedOrder = await queryRunner.manager.save(order);
 
+      // เตรียมข้อมูล Order Items
       const orderItems = items.map(item => {
         const oi = new OrderItem();
         oi.product = { id: item.id } as any;
@@ -65,7 +69,10 @@ export class OrdersService {
         return oi;
       });
 
+      // Save Items
       await queryRunner.manager.save(OrderItem, orderItems);
+      
+      // ยืนยัน Transaction
       await queryRunner.commitTransaction();
 
       return savedOrder;
@@ -77,7 +84,7 @@ export class OrdersService {
     }
   }
 
-  // ฟังก์ชันอื่นๆ คงเดิม
+  // ดึง Order ทั้งหมดสำหรับ Admin
   async findAllAdmin() {
     return this.ordersRepository.find({
       relations: ['user', 'orderItems', 'orderItems.product'],
@@ -85,7 +92,7 @@ export class OrdersService {
     });
   }
 
-  // ✅ ปรับปรุง: เพิ่ม Logic หัก 5% ในฟังก์ชัน approve
+  // ✅ ปรับปรุง: อนุมัติ + หัก 5% + สร้าง Payout (PAID)
   async approve(id: number) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -106,27 +113,31 @@ export class OrdersService {
       await queryRunner.manager.save(order);
 
       // 3. 🚀 Logic สร้างข้อมูล Payout (หัก 5%)
-      // วนลูปสร้างรายการยอดเงินโอนให้คนขาย ตามจำนวนสินค้าในออเดอร์
       for (const item of order.orderItems) {
-        const payout = new Payout();
-        
-        // คำนวณราคารวมของ item นั้น (เผื่อ quantity > 1)
-        const totalItemPrice = Number(item.price) * item.quantity;
-        
-        // คำนวณยอดที่จะหัก 5%
-        const adminFee = totalItemPrice * 0.05;
-        const sellerReceive = totalItemPrice - adminFee;
+        // เช็คก่อนว่าสินค้านี้มีคนขายหรือไม่
+        if (item.product && item.product.user) {
+            const payout = new Payout();
+            
+            // คำนวณราคารวมของ item นั้น (เผื่อ quantity > 1)
+            const totalItemPrice = Number(item.price) * item.quantity;
+            
+            // คำนวณยอดที่จะหัก 5%
+            const adminFee = totalItemPrice * 0.05;
+            const sellerReceive = totalItemPrice - adminFee;
 
-        payout.amount = sellerReceive; // ยอดเงินสุทธิที่คนขายจะได้รับ (95%)
-        payout.seller = item.product.user; // ระบุคนขายที่จะได้รับเงิน
-        payout.order = order;
-        payout.status = 'PENDING'; // สถานะรอแอดมินโอนเงินจริงให้คนขาย
-        
-        await queryRunner.manager.save(payout);
+            payout.amount = sellerReceive; // ยอดเงินสุทธิที่คนขายจะได้รับ (95%)
+            payout.seller = item.product.user; // ระบุคนขายที่จะได้รับเงิน
+            payout.order = order;
+            
+            // ✅ แก้ไขตรงนี้: เปลี่ยนเป็น PAID ทันที เพื่อให้ Seller เห็นว่าเงินเข้าแล้ว
+            payout.status = 'PAID'; 
+            
+            await queryRunner.manager.save(payout);
+        }
       }
 
       await queryRunner.commitTransaction();
-      return { message: 'อนุมัติออเดอร์และสร้างรายการรอยอดโอนให้ผู้ขายเรียบร้อย (หัก 5%)' };
+      return { message: 'อนุมัติออเดอร์และโอนเงินให้ผู้ขายเรียบร้อย (หัก 5%)' };
 
     } catch (err) {
       // หากเกิดข้อผิดพลาด ให้ยกเลิกการเปลี่ยนแปลงทั้งหมด (Rollback)
@@ -140,13 +151,14 @@ export class OrdersService {
 
   // 🔥 ฟังก์ชันสำหรับดึงข้อมูลรายได้ของผู้ขาย (Seller Dashboard)
   async getMyPayouts(sellerId: number) {
-  return this.dataSource.getRepository(Payout).find({
-    where: { seller: { id: sellerId } },
-    relations: ['order'],
-    order: { createdAt: 'DESC' }
-  });
-}
+    return this.dataSource.getRepository(Payout).find({
+        where: { seller: { id: sellerId } },
+        relations: ['order', 'order.user'], 
+        order: { createdAt: 'DESC' }
+    });
+  }
 
+  // ดูประวัติการสั่งซื้อของ User (Buyer)
   findAll(userId: number) {
     return this.ordersRepository.find({
       where: { user: { id: userId } as any },

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 @Entity()
@@ -12,13 +12,14 @@ export class Product {
   @Column()
   description: string;
 
-  // เพิ่ม precision เพื่อให้เก็บทศนิยมได้เป๊ะขึ้น (เช่น 10 หลัก ทศนิยม 2 ตำแหน่ง)
-  @Column('decimal', { precision: 10, scale: 2 }) 
+  @Column('decimal', { precision: 10, scale: 2 })
   price: number;
 
   @Column({ nullable: true })
   image: string;
 
-  @ManyToOne(() => User, (user) => user.id) // เชื่อมกลับไปหา User
+  // ✅ แก้ตรงนี้: ลบ parameter ตัวที่ 2 ออก และใส่ JoinColumn เพื่อความชัวร์
+  @ManyToOne(() => User, { eager: true }) // eager: true ช่วยให้โหลดข้อมูล User มาอัตโนมัติเวลา query product
+  @JoinColumn({ name: 'userId' }) 
   user: User;
 }

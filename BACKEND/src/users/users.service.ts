@@ -28,6 +28,13 @@ export class UsersService {
     return this.usersRepository.save(newUser);
   }
 
+  async updateBankInfo(userId: number, bankName: string, bankAccountNumber: string) {
+  return this.usersRepository.update(userId, {
+    bankName,
+    bankAccountNumber,
+  });
+}
+
   // ฟังก์ชันดึง User ทั้งหมด (เอาไว้เทสดูว่าข้อมูลเข้าไหม)
   findAll() {
     return this.usersRepository.find();
