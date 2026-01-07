@@ -174,4 +174,10 @@ findAll(userId?: number) { // อาจจะต้องแก้ signature เ
       order: { createdAt: 'DESC' },
    });
 }
+
+// 👇 เพิ่มฟังก์ชันนี้เข้าไปครับ (ต่อจาก approve อันเดิมก็ได้)
+  async updateStatus(id: number, status: string) {
+    // อัปเดตสถานะตามที่ส่งมา (PAID หรือ CANCELLED)
+    return this.ordersRepository.update(id, { status: status });
+  }
 }

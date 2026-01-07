@@ -74,16 +74,14 @@ export class OrdersController {
     return this.ordersService.findAllAdmin();
   }
 
-  // ✅ 6. อนุมัติ/เปลี่ยนสถานะออเดอร์ (Admin)
-  // แก้ไข Route ให้ตรงกับ Frontend (Frontend เรียก /:id/status)
+ // ✅ 6. อนุมัติ/เปลี่ยนสถานะออเดอร์ (Admin)
   @UseGuards(AuthGuard('jwt'))
   @Patch(':id/status') 
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
-    // ต้องไปเพิ่มฟังก์ชัน updateStatus ใน Service ด้วย หรือใช้ approve เดิมถ้ารับแค่ id
-    // ในที่นี้สมมติว่า backend เก่ามี approve ที่รับแค่ id
-    // แต่เพื่อให้ frontend ทำงานได้ ผมแนะนำให้แก้ Service ให้รองรับการรับ status
-    // หรือถ้ายังไม่ได้แก้ Service ให้ใช้ code เดิมไปก่อน
-    return this.ordersService.approve(+id); 
+    // ❌ ของเดิม: return this.ordersService.approve(+id);  <-- ลบบรรทัดนี้ทิ้ง
+    
+    // ✅ ของใหม่: ส่ง status ไปด้วย
+    return this.ordersService.updateStatus(+id, status);
   }
 
   // ✅ 7. ดึงออเดอร์ทั้งหมด (สำหรับ Admin Dashboard ที่เรียก /orders เฉยๆ)
