@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UseInterceptors, UploadedFile, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -7,7 +7,7 @@ import { extname } from 'path';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   // ✅ แก้ไข 1: เปลี่ยนมาใช้ฟังก์ชัน findByUser ที่เราเพิ่มใน Service
   // วิธีนี้จะค้นหาจาก Database โดยตรง แม่นยำกว่าการ filter เอง
@@ -18,8 +18,8 @@ export class ProductsController {
   }
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query('search') search: string) {
+    return this.productsService.findAll(search);
   }
 
   @Get(':id')
@@ -50,7 +50,7 @@ export class ProductsController {
     if (file) {
       createProductDto.image = file.filename;
     }
-    
+
     // ส่ง req.user ไปให้ service เพื่อบันทึกคนขาย
     return this.productsService.create(createProductDto, req.user);
   }

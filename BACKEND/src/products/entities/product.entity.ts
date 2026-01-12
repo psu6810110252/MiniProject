@@ -20,6 +20,5 @@ export class Product {
 
   // ✅ แก้ตรงนี้: ลบ parameter ตัวที่ 2 ออก และใส่ JoinColumn เพื่อความชัวร์
   @ManyToOne(() => User, { eager: true }) // eager: true ช่วยให้โหลดข้อมูล User มาอัตโนมัติเวลา query product
-  @JoinColumn({ name: 'userId' }) 
   user: User;
 }

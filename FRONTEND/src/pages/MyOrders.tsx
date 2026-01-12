@@ -42,7 +42,7 @@ export default function MyOrders() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      
+
       {/* Header */}
       <div style={{ borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px' }}>
         <h1 style={{ margin: 0 }}>📦 ประวัติการสั่งซื้อของฉัน</h1>
@@ -54,23 +54,29 @@ export default function MyOrders() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {orders.map((order) => (
             <div key={order.id} style={{ border: '1px solid #ddd', borderRadius: '10px', padding: '15px', background: 'white', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-              
+
               {/* ส่วนหัวของ Order */}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '10px' }}>
                 <div>
                   <strong>Order #{order.id}</strong>
-                  <span style={{ marginLeft: '10px', color: '#888', fontSize: '0.9rem' }}>
-                    {new Date(order.createdAt).toLocaleDateString()}
+                  <span style={{
+                    fontWeight: 'bold',
+                    marginLeft: '5px',
+                    // ✅ แก้ตรงนี้ 1: ใช้ .toUpperCase() และเช็คคำว่า 'PAID'
+                    color: order.status.toUpperCase() === 'PAID' ? 'green' : (order.status.toUpperCase() === 'PENDING' ? 'orange' : 'red')
+                  }}>
+                    {/* ✅ แก้ตรงนี้ 2: ข้อความแสดงผล */}
+                    {order.status.toUpperCase() === 'PAID' ? '✅ ชำระเงินแล้ว' : (order.status.toUpperCase() === 'PENDING' ? '⏳ รอตรวจสอบ' : '❌ ยกเลิก')}
                   </span>
                 </div>
                 <div>
-                  สถานะ: 
-                  <span style={{ 
-                    fontWeight: 'bold', 
+                  สถานะ:
+                  <span style={{
+                    fontWeight: 'bold',
                     marginLeft: '5px',
-                    color: order.status === 'APPROVED' ? 'green' : (order.status === 'PENDING' ? 'orange' : 'red') 
+                    color: order.status === 'PAID' ? 'green' : (order.status === 'PENDING' ? 'orange' : 'red')
                   }}>
-                    {order.status === 'APPROVED' ? '✅ อนุมัติแล้ว' : (order.status === 'PENDING' ? '⏳ รอตรวจสอบ' : '❌ ยกเลิก')}
+                    {order.status === 'PAID' ? '✅ ชำระเงินแล้ว' : (order.status === 'PENDING' ? '⏳ รอตรวจสอบ' : '❌ ยกเลิก')}
                   </span>
                 </div>
               </div>
@@ -87,7 +93,7 @@ export default function MyOrders() {
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📚</div>
                       )}
                     </div>
-                    
+
                     {/* รายละเอียด */}
                     <div style={{ flex: 1 }}>
                       <h4 style={{ margin: '0 0 5px 0' }}>{item.product ? item.product.title : 'สินค้าถูกลบ'}</h4>

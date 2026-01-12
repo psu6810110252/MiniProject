@@ -7,7 +7,7 @@ import { extname } from 'path';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
 
   // ✅ 1. สั่งซื้อแบบชิ้นเดียว
   @UseGuards(AuthGuard('jwt'))
@@ -24,7 +24,7 @@ export class OrdersController {
   create(@Request() req, @Body('productId') productId: any, @UploadedFile() file: Express.Multer.File) {
     const slipFileName = file ? file.filename : undefined;
     if (productId) {
-        return this.ordersService.create(req.user.id, +productId, slipFileName);
+      return this.ordersService.create(req.user.id, +productId, slipFileName);
     }
     return { message: "Invalid Request: productId is missing" };
   }
@@ -44,9 +44,9 @@ export class OrdersController {
   async createBulk(@Request() req, @Body('items') itemsString: string, @UploadedFile() file: Express.Multer.File) {
     let items = [];
     try {
-        items = JSON.parse(itemsString);
+      items = JSON.parse(itemsString);
     } catch (e) {
-        console.error("Parse Error:", e);
+      console.error("Parse Error:", e);
     }
 
     const slipFileName = file ? file.filename : undefined;
@@ -74,12 +74,12 @@ export class OrdersController {
     return this.ordersService.findAllAdmin();
   }
 
- // ✅ 6. อนุมัติ/เปลี่ยนสถานะออเดอร์ (Admin)
+  // ✅ 6. อนุมัติ/เปลี่ยนสถานะออเดอร์ (Admin)
   @UseGuards(AuthGuard('jwt'))
-  @Patch(':id/status') 
+  @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body('status') status: string) {
     // ❌ ของเดิม: return this.ordersService.approve(+id);  <-- ลบบรรทัดนี้ทิ้ง
-    
+
     // ✅ ของใหม่: ส่ง status ไปด้วย
     return this.ordersService.updateStatus(+id, status);
   }
@@ -92,4 +92,18 @@ export class OrdersController {
   }
   // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
 
+  // ✅ 8. ดูยอดขายของตัวเอง (Seller Income)
+  @UseGuards(AuthGuard('jwt')) // ต้อง Login ก่อนถึงจะดูยอดเงินได้
+  @Get('income')
+  async getSellerIncomeAdmin(@Request() req) {
+    // ส่ง id ของคนขาย (จาก Token) ไปให้ Service คำนวณเงิน
+    return this.ordersService.getSellerIncome(req.user.id);
+  }
+  // ✅ 9. ดูรายได้ค่าธรรมเนียม (Admin Platform Revenue)
+  @UseGuards(AuthGuard('jwt'))
+  @Get('admin/revenue')
+  async getAdminRevenue(@Request() req) {
+    // จริงๆ ควรเช็ค Role Admin ด้วย แต่เบื้องต้นเอาแค่ Login ก็พอ
+    return this.ordersService.getAdminRevenue();
+  }
 } // <--- ปีกกาปิด Class ต้องอยู่บรรทัดสุดท้ายสุด

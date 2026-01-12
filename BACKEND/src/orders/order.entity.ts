@@ -19,9 +19,10 @@ export class Order {
   @CreateDateColumn()
   createdAt: Date;
 
-  @ManyToOne(() => User, { eager: true }) 
+  @ManyToOne(() => User, { eager: true })
   user: User;
 
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true })
-  orderItems: OrderItem[];
+  orderItems: OrderItem[]; // <--- ตรงนี้ชื่อ orderItems ครับ
+  //
 }

@@ -1,27 +1,39 @@
 /* 1. นำเข้าฟอนต์ Kanit */
 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap');
 
+/* 👇 วางทับ :root และ body เดิมได้เลย */
 :root {
-  /* ใช้ฟอนต์ Kanit เป็นหลัก */
-  font-family: 'Kanit', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* 1. สีหลัก (Primary): ปรับให้ดูสุขุมขึ้น ลึกขึ้น */
+  --primary: #6366f1;       /* สีม่วง Indigo (ทันสมัยกว่าม่วงเดิมเล็กน้อย) */
+  --primary-dark: #4f46e5;  /* ม่วงเข้มสำหรับตอนเอาเมาส์ชี้ */
+  --primary-light: #e0e7ff; /* ม่วงอ่อนมาก สำหรับพื้นหลังตกแต่ง */
 
-  color-scheme: light;
-  color: #1f2937;
-  background-color: #f3f4f6;
+  /* 2. สีเน้น (Accent/Success): ใช้เขียว Emerald ดูแพงกว่าเขียวปกติ */
+  --success: #10b981;       
+  --danger: #ef4444;        /* แดงที่ดูนุ่มนวลขึ้น */
+  --warning: #f59e0b;       /* ส้มอำพัน */
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* 3. สีพื้นหลังและตัวอักษร (Neutral) */
+  --bg-body: #f8fafc;       /* ขาวอมฟ้าเทานิดๆ (ไม่ขาวล้วน) สบายตา */
+  --bg-card: #ffffff;
+  --text-main: #1e293b;     /* เทาเข้มเกือบดำ (อ่านง่ายกว่าดำสนิท) */
+  --text-muted: #64748b;    /* เทากลาง สำหรับคำอธิบาย */
+  
+  /* 4. การตั้งค่า UI */
+  --font-main: 'Kanit', sans-serif;
+  --radius: 16px;           /* ความมนของขอบ */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 body {
+  font-family: var(--font-main);
+  background-color: var(--bg-body); /* พื้นหลังสีนวลตา */
+  color: var(--text-main);
   margin: 0;
-  /* ⚠️ สำคัญ: ต้องลบ display: flex ของเดิมออก เพื่อไม่ให้หน้า Dashboard พัง */
-  min-width: 320px;
   min-height: 100vh;
+  min-width: 320px; /* กันหน้าจอเล็กเกินไป */
 }
 
 a {
@@ -725,4 +737,105 @@ textarea.form-control {
 .btn-add:hover {
   background: #5a32a3;
   transform: scale(1.05);
+}
+
+/* 👇 ก๊อปปี้ส่วนนี้ไปวาง "ล่างสุด" ของไฟล์ index.css */
+
+/* =========================================
+   ✨ เทคนิคหน้าเว็บดูแพง (Pro UI Tricks)
+   ========================================= */
+
+/* 1. Navbar แบบกระจกฝ้า (Glassmorphism) */
+.navbar {
+  background: rgba(255, 255, 255, 0.85); /* โปร่งแสง */
+  backdrop-filter: blur(12px);           /* เบลอฉากหลัง */
+  -webkit-backdrop-filter: blur(12px);   /* รองรับ Safari */
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  padding: 0.8rem 2rem; /* ปรับ Padding ให้พอดี */
+}
+
+/* 2. ปุ่มกดที่มีการไล่สี (Gradient Button) */
+.btn-primary, .auth-btn, .btn-add, .btn-submit-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4); 
+  border: none !important;
+  color: white !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover, .auth-btn:hover, .btn-add:hover {
+  transform: translateY(-2px); /* ลอยขึ้น */
+  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.5); 
+  filter: brightness(1.1);
+}
+
+/* 3. การ์ดสินค้าให้ดู Pop-up ออกมา */
+.product-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: var(--shadow-sm); 
+  border-radius: var(--radius);
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg); 
+  border-color: var(--primary-light);
+}
+
+/* 4. ช่องค้นหา (Input) ให้ดูสะอาดตา */
+input[type="text"], input[type="password"], input[type="email"], textarea, .form-control {
+  background-color: #f1f5f9; /* เทาอ่อนมาก */
+  border: 2px solid transparent !important;
+  transition: all 0.2s;
+  border-radius: 12px; /* โค้งมนสวยๆ */
+}
+
+input:focus, textarea:focus, .form-control:focus {
+  background-color: #fff;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px var(--primary-light);
+  outline: none;
+}
+/* =========================
+   🏷️ Category Buttons
+   ========================= */
+
+.category-bar {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap; /* ถ้าจอเล็กให้ปุ่มตกบรรทัดได้ */
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.btn-category {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  padding: 10px 20px;
+  border-radius: 50px; /* ทรงแคปซูล */
+  font-family: 'Kanit', sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.btn-category:hover {
+  background: #f1f5f9;
+  transform: translateY(-2px);
+  color: var(--primary);
+}
+
+/* ปุ่มที่ถูกเลือก (Active) */
+.btn-category.active {
+  background: var(--primary); /* สีม่วงธีมเว็บ */
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); /* เงาสีม่วง */
+  font-weight: 500;
 }

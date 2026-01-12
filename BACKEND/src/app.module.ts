@@ -1,39 +1,51 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 
-import { User } from './users/entities/user.entity';
-import { Product } from './products/entities/product.entity';
-import { Order } from './orders/order.entity';
-import { OrderItem } from './orders/order-item.entity';
-import { Payout } from './orders/entities/payout.entity'; // <--- 1. Import Payout เข้ามา
-
 @Module({
   imports: [
+    // 1. Config Module (โหลด .env ก่อนเพื่อน)
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+
+    // 2. Serve Static (สำหรับรูปภาพ Uploads)
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
     }),
-    
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: 'database.sqlite',
-      // 2. เพิ่ม Payout ใน list นี้ด้วย 👇
-      entities: [User, Product, Order, OrderItem, Payout], 
-      synchronize: true,
+
+    // 3. Database Connection (แบบ Async รอ Config โหลดเสร็จก่อน)
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true, // ⚠️ ใช้เฉพาะตอน Dev
+      }),
+      inject: [ConfigService],
     }),
+
     UsersModule,
     AuthModule,
     ProductsModule,
     OrdersModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AppController],
+  providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

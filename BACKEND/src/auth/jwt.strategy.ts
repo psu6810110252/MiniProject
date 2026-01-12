@@ -1,14 +1,15 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config'; // 👈 1. Import
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(configService: ConfigService) { // 👈 2. Inject ConfigService
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), // รับ Token จาก Header แบบ Bearer
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: 'SECRET_KEY_NAJA', // *ต้องตรงกับที่ตั้งไว้ใน AuthModule เป๊ะๆ*
+      secretOrKey: configService.get<string>('JWT_SECRET') || 'LectureSecretKey2026', // ✅ 3. ใช้ค่าเดียวกับ AuthModule เป๊ะ
     });
   }
 

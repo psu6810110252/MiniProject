@@ -2,30 +2,15 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-interface Product {
-  id: number;
-  title: string;
-  price: number;
-  image: string;
-}
-
-interface Payout {
-  id: number;
-  amount: number;
-  status: string;
-  createdAt: string;
-  order: { id: number; };
-}
+import type { Product, SoldItem } from '../types'; // ✅ Import Types กลาง
 
 function SellerDashboard() {
-  const { user } = useAuth(); // ดึงชื่อ user มาโชว์
+  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [payouts, setPayouts] = useState<Payout[]>([]);
+
   const [myProducts, setMyProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // State สำหรับบัญชีธนาคาร
   const [bankInfo, setBankInfo] = useState({ bankName: '', bankAccountNumber: '' });
   const [isEditingBank, setIsEditingBank] = useState(false);
@@ -33,12 +18,22 @@ function SellerDashboard() {
   const token = localStorage.getItem('token');
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
 
+  // คำนวณยอดเงิน
+  const [serverTotalIncome, setServerTotalIncome] = useState(0);
+  const [soldItems, setSoldItems] = useState<SoldItem[]>([]); // ✅ ใช้ Type SoldItem แทน any
+
   // 1. โหลดข้อมูลจริงจาก API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const resPayouts = await axios.get('http://localhost:3000/orders/payouts/my', authHeader);
-        setPayouts(resPayouts.data);
+        // ของเก่า (payouts) อาจจะไม่ได้ใช้แล้ว แต่เก็บไว้ก่อนเผื่อมีอะไรพัง
+        // const resPayouts = await axios.get('http://localhost:3000/orders/payouts/my', authHeader);
+        // setPayouts(resPayouts.data);
+
+        // ✅ เพิ่ม: ดึงยอดเงิน + ประวัติสินค้า จาก API ใหม่ที่เราเพิ่งแก้
+        const resIncome = await axios.get('http://localhost:3000/orders/income', authHeader);
+        setServerTotalIncome(resIncome.data.totalIncome);
+        setSoldItems(resIncome.data.soldItems); // เก็บรายการสินค้าลง State
 
         const resProfile = await axios.get('http://localhost:3000/users/profile', authHeader);
         setBankInfo({
@@ -49,8 +44,16 @@ function SellerDashboard() {
         const resProducts = await axios.get('http://localhost:3000/products/my-products', authHeader);
         setMyProducts(resProducts.data);
 
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching data:", err);
+
+        // ✅ เพิ่ม Auto-Logout ถ้า Token หมดอายุ (401)
+        if (err.response && err.response.status === 401) {
+          alert('⏳ เซสชั่นหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login'; // ใช้ banned method นิดนึงเพื่อให้ refresh state ชัวร์ๆ
+        }
       } finally {
         setLoading(false);
       }
@@ -83,14 +86,15 @@ function SellerDashboard() {
     }
   };
 
-  // คำนวณยอดเงิน
-  const totalPaid = payouts
-    .filter(p => p.status === 'PAID')
-    .reduce((sum, p) => sum + Number(p.amount), 0);
+  // ใช้ค่าจาก Server ถ้ามี
+  const totalPaid = serverTotalIncome;
+
+  // ใช้จำนวนจาก soldItems
+  const totalSoldItems = soldItems.length;
 
   return (
     <div className="dashboard-container">
-      
+
       {/* --- Header (เอาปุ่มออกแล้ว) --- */}
       <div className="dashboard-header">
         <h1 className="dashboard-title">🛠️ แผงควบคุมผู้ขาย</h1>
@@ -103,7 +107,7 @@ function SellerDashboard() {
           <div className="section-title">
             🏦 ข้อมูลบัญชีรับเงิน
           </div>
-          <button 
+          <button
             onClick={() => isEditingBank ? handleSaveBank() : setIsEditingBank(true)}
             className={isEditingBank ? "nav-btn btn-primary" : "nav-btn btn-outline"}
           >
@@ -116,10 +120,10 @@ function SellerDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
             <div>
               <label className="form-label">ธนาคาร</label>
-              <select 
+              <select
                 className="form-input"
                 value={bankInfo.bankName}
-                onChange={e => setBankInfo({...bankInfo, bankName: e.target.value})}
+                onChange={e => setBankInfo({ ...bankInfo, bankName: e.target.value })}
               >
                 <option value="">-- เลือกธนาคาร --</option>
                 <option value="KBANK">กสิกรไทย (KBANK)</option>
@@ -131,11 +135,11 @@ function SellerDashboard() {
             </div>
             <div>
               <label className="form-label">เลขที่บัญชี</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="form-input"
                 value={bankInfo.bankAccountNumber}
-                onChange={e => setBankInfo({...bankInfo, bankAccountNumber: e.target.value})}
+                onChange={e => setBankInfo({ ...bankInfo, bankAccountNumber: e.target.value })}
                 placeholder="xxx-x-xxxxx-x"
               />
             </div>
@@ -170,7 +174,7 @@ function SellerDashboard() {
         <div className="dashboard-card" style={{ marginBottom: 0, borderLeft: '5px solid #17a2b8', textAlign: 'center' }}>
           <h3 style={{ margin: '0 0 10px 0', color: '#666', fontSize: '1rem' }}>จำนวนสินค้าที่ขายได้</h3>
           <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#17a2b8' }}>
-            {payouts.length} รายการ
+            {totalSoldItems} รายการ
           </div>
         </div>
       </div>
@@ -197,9 +201,9 @@ function SellerDashboard() {
           <div className="product-manager-grid">
             {myProducts.map(p => (
               <div key={p.id} className="manage-card">
-                <img 
-                  src={`http://localhost:3000/uploads/${p.image}`} 
-                  alt={p.title} 
+                <img
+                  src={`http://localhost:3000/uploads/${p.image}`}
+                  alt={p.title}
                   className="manage-card-img"
                 />
                 <div className="manage-card-body">
@@ -209,13 +213,13 @@ function SellerDashboard() {
                   <div style={{ color: '#28a745', fontWeight: 'bold', fontSize: '1.2rem' }}>
                     ฿{p.price.toLocaleString()}
                   </div>
-                  
+
                   <div className="manage-card-actions">
                     <Link to={`/edit/${p.id}`} className="btn-edit">
                       ✏️ แก้ไข
                     </Link>
-                    <button 
-                      onClick={() => handleDelete(p.id)} 
+                    <button
+                      onClick={() => handleDelete(p.id)}
                       className="btn-delete"
                     >
                       🗑️ ลบ
@@ -228,7 +232,7 @@ function SellerDashboard() {
         )}
       </div>
 
-      {/* --- ส่วนที่ 4: ตารางประวัติรายได้ --- */}
+      {/* --- ส่วนที่ 4: ตารางประวัติรายได้ (แก้ให้ใช้ soldItems) --- */}
       <div className="dashboard-card">
         <div className="section-header">
           <div className="section-title">📜 ประวัติรายได้ล่าสุด</div>
@@ -240,29 +244,44 @@ function SellerDashboard() {
               <thead>
                 <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #ddd' }}>
                   <th style={{ padding: '15px', textAlign: 'left' }}>วันที่</th>
-                  <th style={{ padding: '15px', textAlign: 'left' }}>Order ID</th>
+                  <th style={{ padding: '15px', textAlign: 'left' }}>สินค้า</th>
                   <th style={{ padding: '15px', textAlign: 'left' }}>จำนวนเงิน</th>
                   <th style={{ padding: '15px', textAlign: 'center' }}>สถานะ</th>
                 </tr>
               </thead>
               <tbody>
-                {payouts.length === 0 ? (
+                {soldItems.length === 0 ? (
                   <tr><td colSpan={4} style={{ textAlign: 'center', padding: '30px', color: '#999' }}>ยังไม่มีรายการขาย</td></tr>
-                ) : payouts.map(payout => (
-                  <tr key={payout.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '15px' }}>{new Date(payout.createdAt).toLocaleDateString()}</td>
-                    <td style={{ padding: '15px' }}>#{payout.order?.id}</td>
-                    <td style={{ padding: '15px', fontWeight: 'bold' }}>฿{Number(payout.amount).toLocaleString()}</td>
+                ) : soldItems.map((item, index) => (
+                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '15px' }}>{new Date(item.createdAt).toLocaleDateString()}</td>
+                    {/* แสดงชื่อสินค้า และ Order ID */}
+                    <td style={{ padding: '15px' }}>
+                      <div style={{ fontWeight: 'bold' }}>{item.productName}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#888' }}>Order #{item.orderId}</div>
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <div style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.9rem' }}>
+                        ขาย: ฿{Number(item.price).toLocaleString()}
+                      </div>
+                      <div style={{ color: '#dc3545', fontSize: '0.85rem' }}>
+                        หัก 5%: -฿{item.fee ? Number(item.fee).toLocaleString() : '0'}
+                      </div>
+                      <div style={{ color: '#28a745', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                        รับ: ฿{item.netPrice ? Number(item.netPrice).toLocaleString() : Number(item.price).toLocaleString()}
+                      </div>
+                    </td>
                     <td style={{ padding: '15px', textAlign: 'center' }}>
-                      <span style={{ 
-                        padding: '5px 10px', 
-                        borderRadius: '20px', 
+                      <span style={{
+                        padding: '5px 10px',
+                        borderRadius: '20px',
                         fontSize: '0.85rem',
-                        background: payout.status === 'PAID' ? '#d4edda' : '#fff3cd',
-                        color: payout.status === 'PAID' ? '#155724' : '#856404',
+                        background: item.status === 'PAID' ? '#d4edda' : '#fff3cd',
+                        color: item.status === 'PAID' ? '#155724' : '#856404',
                         fontWeight: '600'
                       }}>
-                        {payout.status === 'PENDING' ? '⏳ รอโอน' : '✅ โอนแล้ว'}
+                        {/* ถ้า PAID ให้บอกว่า โอนแล้ว, ถ้ายังก็ รอโอน */}
+                        {item.status === 'PAID' ? '✅ โอนแล้ว' : '⏳ รอโอน'}
                       </span>
                     </td>
                   </tr>
